@@ -145,7 +145,7 @@ function _generate_sysext_options() {
   echo "                         at merge."
   echo " --sysupdate <true|false>:"
   echo "                       Generate a suitable sysupdate .conf file alongside the extension image."
-  echo " --format <format>:    Sysext file system format. Defaults to 'squashfs'."
+  echo " --format <format>:    Sysext file system format. Defaults to 'erofs'."
   echo " --ext-fs-size <size>: File system size when using --format ext2|ext4."
   echo "                       Defaults to 1G."
   echo " --epoch <epoch>:      Set SOURCE_DATE_EPOCH (defaults to "0") for reproducible builds."
@@ -173,7 +173,7 @@ function generate_sysext() {
   local os="$(get_optional_param "os" "_any" "${@}")"
   local reload_services="$(get_optional_param "force-reload" "false" "${@}")"
 
-  local format="$(get_optional_param "format" "squashfs" "${@}")"
+  local format="$(get_optional_param "format" "erofs" "${@}")"
   local ext_fs_size="$(get_optional_param "ext-fs-size" "1G" "${@}")"
 
   SOURCE_DATE_EPOCH="$(get_optional_param "epoch" "0" "${@}")"
