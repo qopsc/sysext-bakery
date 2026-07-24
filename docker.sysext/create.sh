@@ -28,7 +28,7 @@ function populate_sysext_root() {
   local arch="$2"
   local version="$3"
 
-  local without="$(get_optional_param "without" "" "$@")"
+  local without="$(get_optional_param "without" "containerd" "$@")"
 
   # The github release uses different arch identifiers
   local rel_arch="$(arch_transform 'x86-64' 'x86_64' "$arch")"
