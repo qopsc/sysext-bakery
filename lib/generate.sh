@@ -188,7 +188,7 @@ function generate_sysext() {
   local os="$(get_optional_param "os" "_any" "${@}")"
   local reload_services="$(get_optional_param "force-reload" "false" "${@}")"
 
-  local format="$(get_optional_param "format" "squashfs" "${@}")"
+  local format="$(get_optional_param "format" "erofs" "${@}")"
   local ext_fs_size="$(get_optional_param "ext-fs-size" "1G" "${@}")"
 
   SOURCE_DATE_EPOCH="$(get_optional_param "epoch" "0" "${@}")"
