@@ -13,14 +13,22 @@ Instructions for AI agents (Claude, Copilot, Cursor, Aider, etc.) working on thi
 - **Fork hub**: `extensions.quantumops.consulting`
 - **Legacy fork** (retired): `darkspadez/sysext-bakery` / `sysext.darkspadez.me` — kept only until nodes deployed from it are re-provisioned.
 
-The fork's entire divergence from upstream is **four commits** on top of `flatcar/main`:
+The fork's entire divergence from upstream is **four permanent patch commits** on top of `flatcar/main`:
 
 1. **docker-only default** — `docker.sysext/create.sh`: the `without` parameter defaults to `containerd` instead of empty.
 2. **EROFS default** — `lib/generate.sh`: the `format` parameter defaults to `erofs` instead of `squashfs`.
 3. **Fork identity** — `.gitignore` no longer ignores `.env`; `.env` is committed with the qopsc values.
 4. **These docs** — `AGENTS.md` and `CLAUDE.md`.
 
-Nothing else may diverge. If you find other differences from `flatcar/main`, they are drift — investigate and remove them.
+…plus any **temporary divergences** listed in the section below. Anything not covered by either list is drift — investigate and remove it.
+
+---
+
+## Temporary Divergences (pending upstream merge)
+
+These commits ride on the fork only until the corresponding upstream PR merges; the next rebase then drops or converges them and they leave this list.
+
+- **netbird extension** (`netbird.sysext/`, `docs/netbird.md`, `docs/index.md` row, `release_build_versions.txt` netbird lines) — upstream PR: https://github.com/flatcar/sysext-bakery/pull/243. The commit is upstream-clean (flatcar URLs in docs); do not add qopsc-specific content to it.
 
 ---
 
