@@ -48,7 +48,10 @@ ig latest
 k3s v1.32.2+k3s1
 k3s latest
 
-kata-containers latest
+# qopsc fork: kata-containers is NOT built. Its x86-64 image is 2.286 GiB,
+# over GitHub's hard 2 GiB release-asset limit; squashfs does not fix it
+# (~2.11-2.19 GiB). See AGENTS.md "Build-list subset".
+# kata-containers latest
 
 keepalived v2.3.1
 keepalived latest
