@@ -31,14 +31,19 @@ function fetch_artefacts() {
   | jq -r '.assets[] | "\(.name)\t\(.browser_download_url)"' | grep -E '(\bSHA256SUMS|\.conf)$' || true; } \
   > downloads.txt
 
+  local rc=0
   while IFS=$'\t' read -r name url; do
     echo "  Fetching ${name} <-- ${url}"
-    curl \
+    if ! curl \
       -o "${name}" -fsSL --retry-delay 1 --retry 60 --retry-connrefused --retry-max-time 60 \
-       --connect-timeout 20  "${url}"
+       --connect-timeout 20  "${url}" ; then
+      echo "  WARNING: could not fetch ${name} from ${url}"
+      rc=1
+    fi
   done <downloads.txt
 
   rm -f downloads.txt
+  return "${rc}"
 }
 # --
 
@@ -53,12 +58,27 @@ function fetch_extension_metadata() {
 
   for version in $(./bakery.sh list-bakery "${extension}"); do
     release="${extension}-${version}"
+
+    # Clear per iteration: a failed fetch would otherwise leave the previous
+    # version's SHA256SUMS on disk and append it a second time.
+    rm -f SHA256SUMS
+
+    # A draft or half-uploaded release is listed by the API but its assets are
+    # not downloadable. Skip it instead of failing the whole metadata job.
+    if ! fetch_artefacts "${release}" || [[ ! -f SHA256SUMS ]] ; then
+      out "* SKIPPED ${release} (no downloadable SHA256SUMS -- draft or incomplete release)"
+      continue
+    fi
+
     out "* ${release}"
-    fetch_artefacts "${release}"
     cat SHA256SUMS >> SHA256SUMS.all
   done
 
-  mv SHA256SUMS.all SHA256SUMS
+  if [[ -f SHA256SUMS.all ]] ; then
+    mv SHA256SUMS.all SHA256SUMS
+  else
+    rm -f SHA256SUMS
+  fi
 }
 # --
 
@@ -87,8 +107,8 @@ else
 
   for extension in $(./bakery.sh list --plain true); do
     echo
-    fetch_artefacts "$extension"
-    if [[ ! -f SHA256SUMS ]] ; then
+    rm -f SHA256SUMS
+    if ! fetch_artefacts "$extension" || [[ ! -f SHA256SUMS ]] ; then
       out "* SKIPPED ${extension} as no SHA256SUMS is available"
       continue
     fi
