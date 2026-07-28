@@ -64,7 +64,7 @@ function populate_sysext_root() {
        "${sysextroot}/usr/lib/systemd/system/containerd.service" \
        "${sysextroot}/usr/lib/systemd/system/multi-user.target.d/10-containerd-service.conf" \
        "${sysextroot}/usr/share/containerd/config.toml" \
-       "${sysextroot}/usr/share/containerd/config-cgroups.toml"
+       "${sysextroot}/usr/share/containerd/config-cgroupfs.toml"
 
      rmdir "${sysextroot}/usr/share/containerd" \
            "${sysextroot}/usr/lib/systemd/system/multi-user.target.d/"
