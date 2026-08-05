@@ -1,0 +1,25 @@
+# Deployment for the qopsc sysext hub (extensions.quantumops.consulting).
+#
+# Caddy rewrites systemd-sysupdate requests into qopsc/sysext-bakery release
+# URLs. See Caddyfile for the redirect patterns.
+#
+# Requires ./Caddyfile beside this file, and ./data + ./config directories.
+# Certificates live in ./data - back that directory up, losing it means
+# re-issuing against Let's Encrypt rate limits.
+
+name: sysext-hub
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy-webserver
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      # ':z' relabels for SELinux, required on Fedora.
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro,z
+      - ./data:/data:z
+      - ./config:/config:z
