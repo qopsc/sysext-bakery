@@ -13,7 +13,7 @@ Instructions for AI agents (Claude, Copilot, Cursor, Aider, etc.) working on thi
 - **Fork hub**: `extensions.quantumops.consulting` — **not yet stood up**, see Known Issues.
 - **Legacy fork** (retired): `darkspadez/sysext-bakery` / `sysext.darkspadez.me` — kept only until nodes deployed from it are re-provisioned.
 
-The fork's divergence from `flatcar/main` is **nine permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
+The fork's divergence from `flatcar/main` is **ten permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
 
 | # | Patch | File(s) | Kind |
 |---|-------|---------|------|
@@ -26,6 +26,7 @@ The fork's divergence from `flatcar/main` is **nine permanent patches** plus any
 | 7 | Metadata resilience | `release_meta.sh` | upstream bugfix |
 | 8 | CI resilience | `.github/workflows/release.yaml` | upstream bugfix |
 | 9 | qopsc hub deployment | `tools/http-url-rewrite-server/**` | policy |
+| 10 | sqlite extension | `sqlite.sysext/**`, `docs/sqlite.md`, `docs/index.md`, `release_build_versions.txt` sqlite lines | policy |
 
 Patches marked **upstream bugfix** (2, 7, 8) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
 
@@ -105,7 +106,7 @@ bakery_hub="extensions.quantumops.consulting"
 
 **File**: `release_build_versions.txt` — the `kata-containers latest` entry is commented out.
 
-This fork builds a **subset** of upstream's extensions. Every other line tracks upstream verbatim; take upstream's version in any conflict, then re-apply the kata-containers comment.
+This fork builds a **subset** of upstream's extensions. Every other line tracks upstream verbatim **except** the two `sqlite` entries, which are fork-added and belong to patch 10; take upstream's version in any conflict, then re-apply the kata-containers comment and the sqlite lines.
 
 **Why kata-containers is excluded**: `kata-containers-4.0.0-x86-64.raw` is **2,455,023,616 bytes (2.286 GiB)**, against GitHub's hard **2 GiB (2,147,483,648 B)** per-asset limit — over by 14.3%. Do not relitigate this with a format change: backing out the measured EROFS penalty from patch 3 puts squashfs at **~2.11–2.19 GiB, still over**. kata 4.0.0 ships ~26% more than 3.32.0 (TDX/SNP/NVIDIA/dragonball kernel, initrd and firmware variants) and will only grow.
 
@@ -146,6 +147,20 @@ Upstream ships this directory configured for `extensions.flatcar.org` with a Fla
 
 See `tools/http-url-rewrite-server/2026-08-05-qopsc-hub-caddy-compose-design.md` for the decisions and their rationale.
 
+### 10. sqlite extension
+
+**Files**: `sqlite.sysext/` (create.sh, test.sh, design and plan docs), `docs/sqlite.md`, the `sqlite` row in `docs/index.md`, and the two `sqlite` lines in `release_build_versions.txt`.
+
+A fork-local extension shipping `sqlite3` and `sqldiff`. It does not exist upstream, so there is no upstream version to reconcile against — in any conflict take upstream's file and re-add the sqlite parts.
+
+**Rules**:
+- Ships exactly two binaries. Adding `sqlite3_rsync`, `sqlite3_analyzer` or the `show*` tools is a scope decision, not a fix; see the design doc.
+- The version-discovery regex anchors on the href quotes (`'"sqlite-3[^"]*\.apk"'`). Do not "simplify" it to `btop`'s unanchored idiom: an unanchored match fires inside other packages' filenames (`lua5.4-sqlite-…`) and reports their versions as sqlite's.
+- The build asserts the installed version matches the requested one. `btop` and `tilde` lack this check and can silently publish mislabelled images; do not remove it to make a pinned build pass. When Alpine moves past a pinned version, bump or drop the pinned line instead.
+- `docs/index.md` and `docs/sqlite.md` link the **qopsc** release tag, not flatcar's. There is no flatcar release for this extension.
+
+See `sqlite.sysext/2026-08-05-sqlite-sysext-design.md` for the decisions and their rationale.
+
 ---
 
 ## Upstream Sync Procedure
@@ -175,8 +190,9 @@ lib/generate.sh
 release_build_versions.txt
 release_meta.sh
 tools/http-url-rewrite-server/**
+docs/index.md  docs/sqlite.md  sqlite.sysext/**
 # plus, while the netbird divergence lasts:
-README.md  docs/index.md  docs/netbird.md  netbird.sysext/**
+README.md  docs/netbird.md  netbird.sysext/**
 ```
 
 And sanity-check the scripts:
