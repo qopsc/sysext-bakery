@@ -13,7 +13,7 @@ Instructions for AI agents (Claude, Copilot, Cursor, Aider, etc.) working on thi
 - **Fork hub**: `extensions.quantumops.consulting` — **not yet stood up**, see Known Issues.
 - **Legacy fork** (retired): `darkspadez/sysext-bakery` / `sysext.darkspadez.me` — kept only until nodes deployed from it are re-provisioned.
 
-The fork's divergence from `flatcar/main` is **eight permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
+The fork's divergence from `flatcar/main` is **nine permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
 
 | # | Patch | File(s) | Kind |
 |---|-------|---------|------|
@@ -25,6 +25,7 @@ The fork's divergence from `flatcar/main` is **eight permanent patches** plus an
 | 6 | Build-list subset (no kata-containers) | `release_build_versions.txt` | policy |
 | 7 | Metadata resilience | `release_meta.sh` | upstream bugfix |
 | 8 | CI resilience | `.github/workflows/release.yaml` | upstream bugfix |
+| 9 | qopsc hub deployment | `tools/http-url-rewrite-server/**` | policy |
 
 Patches marked **upstream bugfix** (2, 7, 8) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
 
@@ -131,6 +132,20 @@ The patch:
 - `fail-fast: false` **and** `continue-on-error: true` on the `update-extension-metadata` matrix. Without the former, one failing extension cancels its siblings; without the latter, `update-global-metadata` (which `needs` it) is skipped and the global `SHA256SUMS` never publishes. This exactly matches upstream's own stated rationale for `create-release`.
 - `update-global-metadata` gains `list-builds` in its `needs` array. Its `if:` reads `needs.list-builds.outputs.extensions`, but `list-builds` was not in `needs`, so the expression evaluated to null, `!= ''` was false, and **the job was skipped on every run**. This is not a qopsc regression — it is skipped on every upstream run too, and upstream's own global `SHA256SUMS` release has not been republished since 2025-03-20.
 
+### 9. qopsc hub deployment
+
+**Files**: `tools/http-url-rewrite-server/` — `Caddyfile` (modified), plus `docker-compose.yml`, `install.sh`, `README.md` and the design/plan docs (added).
+
+Upstream ships this directory configured for `extensions.flatcar.org` with a Flatcar/Ignition systemd unit as its only run definition. This fork repoints the `Caddyfile` at `extensions.quantumops.consulting` and `github.com/qopsc/sysext-bakery`, and adds a compose deployment for a non-Flatcar (Fedora) host.
+
+**Rules**:
+- Values are hardcoded by choice, not read from `.env`. Do not "improve" this into `{$bakery_hub}` placeholders without deciding to; the deployment host does not have the repo checked out.
+- The three endpoints in the `Caddyfile` are the hostname, `base_dest_url`, and the final catch-all. The five `path_regexp` matchers track upstream verbatim — take upstream's version in any conflict, then re-apply the three endpoints.
+- `caddy.service` and `extensions.flatcar.org.yaml` are deliberately **left on upstream's values**. They are the Flatcar deployment path and this fork does not use them.
+- Certificates live in the deployment host's `./data` bind mount, not in this repo.
+
+See `tools/http-url-rewrite-server/2026-08-05-qopsc-hub-caddy-compose-design.md` for the decisions and their rationale.
+
 ---
 
 ## Upstream Sync Procedure
@@ -159,6 +174,7 @@ docker.sysext/create.sh
 lib/generate.sh
 release_build_versions.txt
 release_meta.sh
+tools/http-url-rewrite-server/**
 # plus, while the netbird divergence lasts:
 README.md  docs/index.md  docs/netbird.md  netbird.sysext/**
 ```
@@ -197,3 +213,5 @@ A leftover **draft** release is a red flag: it means an upload failed, and it wi
 ## Known Issues
 
 - **`extensions.quantumops.consulting` does not resolve.** The `quantumops.consulting` zone exists (ClouDNS), but the `extensions` subdomain has no record. `lib/sysupdate.conf.tmpl` bakes `https://{BAKERY_HUB}/extensions/…` into the `.conf` inside every released image, so images published today ship an unusable sysupdate source. Builds and releases are unaffected; **node-side sysupdate is not usable until the hub is stood up**. Legacy `sysext.darkspadez.me` still resolves (152.53.243.195). Do not "fix" this by editing `.env` — see patch 4.
+
+  The hub's serving config now exists and is deployable — see patch 9 and `tools/http-url-rewrite-server/README.md`. The remaining work is external to this repo: create the A record pointing at the host, then run the installer. Until then Caddy starts but Let's Encrypt cannot issue a certificate.

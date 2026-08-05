@@ -763,14 +763,25 @@ Expected: every directory shown in the diff is accounted for in AGENTS.md's expe
 
 - [ ] **Step 8: Confirm nothing outside the intended scope changed**
 
+Diff against the commit this work started from, **not** `flatcar/main`. Comparing to
+upstream would flag pre-existing fork patches (`.env` is patch 4; `README.md` and `docs/`
+carry the temporary netbird divergence) and drown the signal.
+
 ```bash
-git diff flatcar/main main --stat -- \
+base=3c40a2d   # last commit before this plan's work
+git diff "${base}" --stat -- \
   tools/http-url-rewrite-server/caddy.service \
   tools/http-url-rewrite-server/extensions.flatcar.org.yaml \
   .env README.md docs/
 ```
 
 Expected: **empty output**. Any output means an out-of-scope file was modified; revert it.
+
+Then confirm the full set of files this work touched is exactly the intended eight:
+
+```bash
+git diff "${base}" --stat | cat
+```
 
 - [ ] **Step 9: Commit**
 
