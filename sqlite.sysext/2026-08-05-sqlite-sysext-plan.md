@@ -17,7 +17,7 @@
 - **Pinned release version:** `3.53.2` (current Alpine `latest-stable`).
 - **Hub hostname in docs:** `extensions.quantumops.consulting`. Release-tag links point at `qopsc/sysext-bakery`, not flatcar — this extension does not exist upstream.
 - **Script conventions** (match `btop.sysext/create.sh`): `#!/usr/bin/env bash`, `# vim: et ts=2 syn=bash`, `# --` after each function.
-- **Never ship `/usr/sbin`.** On Flatcar it is a symlink to `/usr/bin`; a sysext containing it destroys `/usr/bin` on merge. `flix.sh` only writes `/usr/bin` and `/usr/lib` for these inputs, so this is a review check, not a code change.
+- **Never ship `/usr/sbin`.** On Flatcar it is a symlink to `/usr/bin`; a sysext containing it destroys `/usr/bin` on merge. `flix.sh` only writes `/usr/bin` and `/usr/local/<name>/` for these inputs, so this is a review check, not a code change.
 - **Do not modify:** `.env`, `lib/**`, `bakery.sh`, `release.sh`, `release_meta.sh`, `release_dispatcher.sh`, `.github/**`, root `README.md`, or any other `*.sysext/`. This extension uses existing interfaces unchanged.
 - Local host is macOS with Docker but no `mkfs.erofs`, `mksquashfs` or `qemu`. `./bakery.sh create` and `./bakery.sh boot` **cannot run here** — image generation is proven by CI.
 
@@ -486,7 +486,7 @@ Image generation needs `mkfs.erofs` and an emulated arm64 container, neither ava
 
 - [ ] `sqlite-3.53.2-x86-64.raw` and `sqlite-3.53.2-arm64.raw` both published
 - [ ] `file sqlite-3.53.2-x86-64.raw` reports EROFS
-- [ ] The image contains `usr/bin/sqlite3`, `usr/bin/sqldiff`, a populated `usr/lib`, and **no** `usr/sbin`
+- [ ] The image contains `usr/bin/sqlite3`, `usr/bin/sqldiff`, a populated `usr/local/sqlite/` (musl loader + libs), and **no** `usr/sbin`. There will be no `usr/lib` — `flix.sh` keeps the closure private so it cannot shadow host libraries.
 - [ ] The bundled `sqlite.conf` sysupdate `Path` points at `extensions.quantumops.consulting`
 - [ ] No leftover **draft** release (`gh release list --repo qopsc/sysext-bakery | grep -i -- draft` is empty) — a draft means an upload failed and will keep the metadata job skipping this version until deleted
 

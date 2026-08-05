@@ -52,7 +52,7 @@ trixie carries 3.46.1.
 |---|---|---|
 | Source | Alpine `latest-stable` `main` | Only source with both architectures and the companion tools, with no compiler in the loop. Same pattern as `btop` and `tilde`. |
 | Binaries | `sqlite3`, `sqldiff` | `flix.sh` takes explicit paths. `sqlite3_rsync` (replication over ssh) and `sqlite3_analyzer` (space report) are niche; the `show*` tools are file-format forensics. Adding any of them later is a one-word change. |
-| Self-containment | `flix.sh` | Alpine's `sqlite3` needs `/lib/ld-musl-x86_64.so.1`, `libc.musl-*.so.1` and `libreadline.so.8`. `flix.sh` copies the closure into `/usr/lib` and patchelfs interpreter and rpath. `tilde` does the same. |
+| Self-containment | `flix.sh` | Alpine's `sqlite3` needs `/lib/ld-musl-x86_64.so.1`, `libc.musl-*.so.1` and `libreadline.so.8`. `flix.sh` copies the closure into `/usr/local/sqlite/`, repoints the ELF interpreter there and sets rpath. `tilde` does the same. |
 | Version pinning | Assert, don't trust | See below. |
 | Fork status | Permanent, patch 10 | Not upstreamed. Docs point at `extensions.quantumops.consulting`. |
 | Release versions | `sqlite 3.53.2` + `sqlite latest` | Pinned known-good plus rolling, matching `chrony`/`consul`/`vault`. |
@@ -157,8 +157,67 @@ lookup fails, readline degrades to dumb-terminal line editing and `sqlite3` othe
 — non-blocking. If it proves annoying, the fix is to pass Alpine's terminfo directory to
 `flix.sh` as an extra resource path.
 
-**Image size.** Roughly 5 MB of payload before compression; low single-digit MB as EROFS.
-Nowhere near the 2 GiB asset limit that governs patch 6.
+**Image size.** 5.5 MB of payload before compression, measured: two binaries plus a
+five-file closure (musl loader, `libc`, `libsqlite3`, `libreadline`, `libncursesw`). Low
+single-digit MB as EROFS, nowhere near the 2 GiB asset limit that governs patch 6.
+
+**Alpine's RPATH inflates the image if left alone.** Alpine links `sqlite3` and
+`libsqlite3.so.0` with `RPATH=/usr/lib`. `flix.sh` copies every RPATH entry wholesale
+(`flix.sh:69`), so that single redundant entry pulls the build container's entire `/usr/lib`
+into the image — 19 MB instead of 5.5 MB, and its contents then depend on whichever packages
+the build happened to install, `bash` and `coreutils` among them. The entry is dead weight
+regardless, because `flix.sh` replaces the RPATH with the private lib dir it just populated.
+`create.sh` therefore runs `patchelf --remove-rpath` on both files before invoking `flix.sh`.
+This is worth knowing for any future Alpine-sourced `flix` extension; it is a property of
+Alpine's packaging, not of sqlite.
+
+## Depended-upon property: flix does not chroot
+
+`flix.sh` and `flatwrap.sh` look interchangeable and are not. This extension depends on the
+difference, so it is recorded here rather than left to be rediscovered.
+
+`flatwrap.sh` copies an entire distro rootfs into the image and generates `unshare`/`bwrap`
+entry-point scripts. The shipped "binary" is a wrapper, and the real program runs in a
+namespace where only the paths named in flatwrap's `HOST=` list — `/dev /proc /sys /run
+/tmp /var/tmp` — are visible. `btop` is built this way. A database at `/media/opt/…` would
+be invisible to a program packaged like that, and the only fix would be to hardcode
+`/media` into the wrapper's bind list.
+
+`flix.sh` generates no wrapper and no namespace. It copies the real ELF binary to
+`/usr/bin/`, repoints its interpreter and rpath at `/usr/local/sqlite/`, and stops there
+(`tools/flix.sh:98`, `:122`, `:57`, `:76`). The binary runs as an ordinary process in the
+host mount namespace and sees the whole filesystem. `sqlite3 /media/opt/whatever.db`
+therefore works with no per-path configuration, and adding any would be a mistake.
+
+`patchelf --no-default-lib` (`flix.sh:76`) sets `DF_1_NODEFLIB`, confining *library*
+resolution to the private directory. That constrains linkage only — it has no bearing on
+which files the process may open. It does mean `flix` is unsuitable for any program that
+must `dlopen` a host library by soname.
+
+This was confirmed empirically rather than left as an argument from reading the source. The
+payload was built, copied over the `/usr` of a **Debian 12 / glibc 2.36** container — a
+different libc from the musl the binary was built against, standing in for the Flatcar host
+— and given paths that exist only on that host and never appear anywhere in the payload:
+
+```
+$ sqlite3 --version
+3.53.2 2026-06-03 19:12:13 d6e03d8c777c… (64-bit)
+$ sqlite3 /media/opt/sonarr/sonarr.db "create table series(title text);
+    insert into series values('proof'); select title from series;"
+proof
+$ sqlite3 /media/opt/sonarr/sonarr.db ".tables"
+series
+$ sqlite3 /srv/x.db "create table t(a int); insert into t values(42); select a from t;"
+42
+$ sqldiff /srv/x.db /srv/y.db
+UPDATE t SET a=99 WHERE rowid=1;
+$ ls -la /media/opt/sonarr/sonarr.db
+-rw-r--r-- 1 root root 8192 …
+```
+
+The payload's only top-level entries are `usr/bin` and `usr/local`; it contains no `/media`,
+no `/srv`, and no bind-mount list. `/media/opt` is not special to it, which is the point —
+`/srv` behaves identically, so there is nothing to configure per path.
 
 ## Out of scope
 
@@ -179,7 +238,10 @@ is therefore split:
 4. `git diff flatcar/main main --stat` — divergence matches the updated AGENTS.md list exactly.
 5. The release workflow proves the build: both `sqlite-3.53.2-x86-64.raw` and
    `sqlite-3.53.2-arm64.raw` published, `file` reports EROFS, and the image contains
-   `usr/bin/sqlite3`, `usr/bin/sqldiff`, the bundled `usr/lib` closure, and no `usr/sbin`.
+   `usr/bin/sqlite3`, `usr/bin/sqldiff`, the bundled closure under `usr/local/sqlite/`
+   (musl loader, `libc.musl-*.so.1`, `libreadline.so.8` and its own dependencies), and no
+   `usr/sbin`. Note the libraries are **not** in `usr/lib` — `flix.sh` keeps them in a
+   private directory precisely so they cannot shadow the host's.
 
 ## Follow-up
 
