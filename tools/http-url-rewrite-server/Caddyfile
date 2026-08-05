@@ -14,13 +14,16 @@
 # ...
 #
 # while in fact requests are being redirected to GitHub releases depending on which pattern matches the request.
+{
+	email hello@quantumops.consulting
+}
 
-# For testing locally, uncomment the below and comment 'extensions.flatcar.org {',
+# For testing locally, uncomment the below and comment 'extensions.quantumops.consulting {',
 #  then run
-# docker run --rm -ti -v ${PWD}/Caddyfile:/etc/caddy/Caddyfile -p 8080:80 caddy
+# docker run --rm -ti -v ${PWD}/Caddyfile:/etc/caddy/Caddyfile -p 8080:80 caddy:2-alpine
 #:80 {
-extensions.flatcar.org {
-	vars base_dest_url "https://github.com/flatcar/sysext-bakery/releases/download"
+extensions.quantumops.consulting {
+	vars base_dest_url "https://github.com/qopsc/sysext-bakery/releases/download"
 
 	# Extension image.
 	#     <extension>-<version>-<arch>.raw
@@ -58,5 +61,5 @@ extensions.flatcar.org {
 	redir @sha {vars.base_dest_url}/SHA256SUMS/SHA256SUMS
 
 	# None of the above matched, redirect to the website.
-	redir https://flatcar.github.io/sysext-bakery{uri}
+	redir https://qopsc.github.io/sysext-bakery{uri}
 }
