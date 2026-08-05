@@ -7,9 +7,10 @@
 RELOAD_SERVICES_ON_MERGE="false"
 
 function list_available_versions() {
-  # Add sort for consuming all curl output
-  # (When copying this, you might need to switch to 'main' from 'community')
-  curl -sSfL https://dl-cdn.alpinelinux.org/alpine/latest-stable/community/x86_64/ | { sort || true ; } | grep -m1 -o "btop-.*apk" | cut -d - -f 2
+  # Upstream tags are "v1.4.7"; published sysext assets are "btop-1.4.7-...",
+  # so strip the leading v to stay consistent with what has already shipped.
+  list_github_releases "aristocratos" "btop" \
+    | sed -e 's/^v//'
 }
 # --
 
@@ -21,21 +22,32 @@ function populate_sysext_root() {
   local img_arch="$(arch_transform 'x86-64' 'amd64' "$arch")"
   img_arch="$(arch_transform 'arm64' 'arm64/v8' "$img_arch")"
 
-  local sysextname=btop
+  # btop's Makefile only offers GPU support on x86_64 (Makefile:96), so asking
+  # for it on arm64 would fail the build rather than be ignored.
+  local gpu_support=false
+  if [ "${arch}" = "x86-64" ]; then
+    gpu_support=true
+  fi
+
+  # Debian trixie for GCC 14: btop 1.4.7 uses C++23 features that GCC 12 in
+  # bookworm rejects. Building against trixie's newer glibc is safe because
+  # build.sh asserts the resulting binary stays within the glibc version
+  # Flatcar provides.
+  local image="docker.io/debian:trixie-slim"
+
+  announce "Building btop $version for $arch (GPU support: $gpu_support)"
+
+  local user_group="$(id -u):$(id -g)"
+
+  cp "${scriptroot}/btop.sysext/build.sh" .
   docker run --rm \
-              -i \
-              -v "${scriptroot}/tools/":/tools \
-              -v "${sysextroot}":/install_root \
-              --platform "linux/${img_arch}" \
-              --pull always \
-              --network host \
-              docker.io/alpine:latest \
-                  sh -c "apk add -U btop bash coreutils grep && cd /install_root && ETCMAP=chroot /tools/flatwrap.sh / $sysextname /usr/bin/btop && OWNER=\$(stat -c '%u:%g' /install_root) && if [ \"\$OWNER\" != \"\$(id -u):\$(id -g)\" ]; then chown -R \"\$OWNER\" /install_root/$sysextname; fi"
-  # Alpine has /etc/terminfo instead of /usr/terminfo,
-  # so above we need to skip mapping the host /etc into the flatwrap env
-  mv "${sysextroot}"/btop/usr "${sysextroot}"/usr
-  rmdir "${sysextroot}"/btop
-  # Workaround: The bakery.sh tmp dir cleanup fails otherwise
-  chmod -R u+w "${sysextroot}" || true
+    -i \
+    -v "$(pwd)":/install_root \
+    --platform "linux/${img_arch}" \
+    --network host \
+    ${image} \
+        /install_root/build.sh "${version}" "$user_group" "${gpu_support}"
+
+  cp -aR usr "${sysextroot}"/
 }
 # --

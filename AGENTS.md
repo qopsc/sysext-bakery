@@ -13,7 +13,7 @@ Instructions for AI agents (Claude, Copilot, Cursor, Aider, etc.) working on thi
 - **Fork hub**: `extensions.quantumops.consulting` — **not yet stood up**, see Known Issues.
 - **Legacy fork** (retired): `darkspadez/sysext-bakery` / `sysext.darkspadez.me` — kept only until nodes deployed from it are re-provisioned.
 
-The fork's divergence from `flatcar/main` is **ten permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
+The fork's divergence from `flatcar/main` is **eleven permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
 
 | # | Patch | File(s) | Kind |
 |---|-------|---------|------|
@@ -27,6 +27,7 @@ The fork's divergence from `flatcar/main` is **ten permanent patches** plus any 
 | 8 | CI resilience | `.github/workflows/release.yaml` | upstream bugfix |
 | 9 | qopsc hub deployment | `tools/http-url-rewrite-server/**` | policy |
 | 10 | sqlite extension | `sqlite.sysext/**`, `docs/sqlite.md`, `docs/index.md`, `release_build_versions.txt` sqlite lines | policy |
+| 11 | btop rebuilt from source for GPU support | `btop.sysext/**`, `docs/btop.md`, `docs/index.md` btop row | policy |
 
 Patches marked **upstream bugfix** (2, 7, 8) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
 

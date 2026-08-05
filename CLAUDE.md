@@ -5,7 +5,7 @@ This repository is the **qopsc fork** of `flatcar/sysext-bakery`. Read `AGENTS.m
 ## Quick facts
 
 - Remotes: `origin` = `qopsc/sysext-bakery` (this fork), `flatcar` = upstream.
-- Divergence from `flatcar/main` is **ten permanent patches**, plus temporary divergences listed in AGENTS.md (currently: the netbird extension, pending flatcar/sysext-bakery#243). Anything else is drift.
+- Divergence from `flatcar/main` is **eleven permanent patches**, plus temporary divergences listed in AGENTS.md (currently: the netbird extension, pending flatcar/sysext-bakery#243). Anything else is drift.
 
   | # | Patch | File(s) |
   |---|-------|---------|
@@ -19,6 +19,7 @@ This repository is the **qopsc fork** of `flatcar/sysext-bakery`. Read `AGENTS.m
   | 8 | CI resilience | `.github/workflows/release.yaml` |
   | 9 | qopsc hub deployment | `tools/http-url-rewrite-server/**` |
   | 10 | sqlite extension | `sqlite.sysext/**`, `docs/sqlite.md`, `docs/index.md` |
+  | 11 | btop rebuilt from source for GPU support | `btop.sysext/**`, `docs/btop.md`, `docs/index.md` |
 
 - Patches 1 and 2 are in the same function — they rebase as **one conflict**, resolve together.
 - Patches 2, 7 and 8 fix bugs that also exist upstream; they are carried fork-locally by choice and should disappear if upstream ever fixes them.
