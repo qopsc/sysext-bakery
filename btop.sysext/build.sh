@@ -52,19 +52,23 @@ fi
 # The binary must start on the oldest Flatcar we support. Symbol versions,
 # not the build host's glibc, decide that: this is built against a newer
 # glibc but only references symbols up to the version asserted here.
-# Flatcar LTS currently ships glibc 2.38, so anything above that would
-# produce a binary that cannot start there.
+#
+# The floor is Flatcar stable's glibc. LTS (2.38) is deliberately not a
+# target for this fork. Raising the floor further would only be meaningful
+# alongside a newer build base, since the base's own glibc caps what the
+# binary can possibly reference.
+glibc_floor="2.41"
 max_glibc="$(objdump -T bin/btop \
   | grep -o 'GLIBC_[0-9.]*' \
   | sed 's/GLIBC_//' \
   | sort -V \
   | tail -1)"
-if [ "$(printf '%s\n2.38\n' "${max_glibc}" | sort -V | tail -1)" != "2.38" ]; then
-  echo "ERROR: btop requires glibc ${max_glibc}, newer than the 2.38 floor." >&2
-  echo "       It would fail to start on Flatcar LTS. Refusing to publish." >&2
+if [ "$(printf '%s\n%s\n' "${max_glibc}" "${glibc_floor}" | sort -V | tail -1)" != "${glibc_floor}" ]; then
+  echo "ERROR: btop requires glibc ${max_glibc}, newer than the ${glibc_floor} floor." >&2
+  echo "       It would fail to start on Flatcar stable. Refusing to publish." >&2
   exit 1
 fi
-echo "btop requires at most glibc ${max_glibc} (floor is 2.38)"
+echo "btop requires at most glibc ${max_glibc} (floor is ${glibc_floor})"
 
 make install PREFIX=/install_root/usr
 

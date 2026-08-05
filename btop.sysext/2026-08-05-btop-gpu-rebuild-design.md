@@ -69,13 +69,22 @@ Flatcar's channels, checked from `*.release.flatcar-linux.net`:
 | stable | 4593.2.4 | 2.41 |
 | beta | 4722.1.0 | 2.42 |
 | alpha | 4757.0.0 | 2.42 |
-| **lts** | **4081.3.9** | **2.38** |
+| lts | 4081.3.9 | 2.38 |
 
-So the binary starts on every current channel, but LTS matches the floor exactly with no
-margin. `build.sh` asserts the requirement stays at or below 2.38 and fails the build
-otherwise, so a toolchain bump cannot quietly produce an image that will not start on LTS.
-If that assertion ever fires, the options are to build on an older glibc or to drop LTS
-support deliberately.
+The binary starts on every current channel. `build.sh` nonetheless asserts a ceiling, so
+that a toolchain bump cannot quietly produce an image that will not start on the oldest
+target.
+
+**The ceiling is 2.41, Flatcar stable's glibc. LTS is deliberately not a target.** This
+fork deploys alpha, so LTS compatibility would be unused strictness: pinning the ceiling at
+LTS's 2.38 would eventually fail a build over a target nobody here runs. Supporting LTS
+again means lowering the ceiling to 2.38 and finding a build base with an older glibc and a
+new enough GCC — which is not trivial, as the AlmaLinux 9 attempt above shows.
+
+Note the assertion cannot fire while the build base is trixie, whose glibc 2.41 already
+caps what the binary can reference. That is intended: it is a tripwire for the day the
+build base moves ahead of the deployed fleet, which is exactly when a silent breakage
+would otherwise slip through.
 
 ## Verification
 
