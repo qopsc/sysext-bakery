@@ -34,7 +34,7 @@ makes `restart: unless-stopped` the replacement for the systemd unit.
 | Catch-all target | `qopsc.github.io/sysext-bakery` | Verified live (HTTP 200); Pages is enabled on the fork. |
 | Cert storage | Bind mounts | Certs visible on disk and backup-able by rsync. Matters because Let's Encrypt rate limits punish cert loss. |
 | Installer | `curl \| bash`, stages then starts | One-command bring-up on a fresh host. |
-| Spec location | Top-level `specs/` | `docs/` is the Jekyll source for the live Pages site; specs there would be published and would require editing upstream's `_config.yml`. |
+| Spec location | Alongside the deployment files | Kept in `tools/http-url-rewrite-server/` with the config it describes. Not `docs/` — that is the Jekyll source for the live Pages site, so a spec there would be published and would require editing upstream's `_config.yml`. |
 
 `.env` is **not** modified. `bakery_hub` is load-bearing — it is baked into already-released
 images — and AGENTS.md patch 4 forbids casual changes. This work makes the existing value
@@ -151,7 +151,7 @@ would create a rebase conflict for no benefit.
 The fork's sync procedure treats any file outside its documented divergence list as drift to
 be removed. Left unrecorded, this entire change is deleted by the next rebase. So:
 
-- Patch table row 9: `qopsc hub deployment | tools/http-url-rewrite-server/{Caddyfile,docker-compose.yml,install.sh,README.md} | policy`
+- Patch table row 9: `qopsc hub deployment | tools/http-url-rewrite-server/{Caddyfile,docker-compose.yml,install.sh,README.md} + the design and plan docs in that directory | policy`
 - Same paths appended to the expected-divergence list under Upstream Sync Procedure
 - Known Issues DNS entry annotated: hub config now exists and is deployable; only the A record is outstanding
 
