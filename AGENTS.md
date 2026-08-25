@@ -13,7 +13,7 @@ Instructions for AI agents (Claude, Copilot, Cursor, Aider, etc.) working on thi
 - **Fork hub**: `extensions.quantumops.consulting` — **not yet stood up**, see Known Issues.
 - **Legacy fork** (retired): `darkspadez/sysext-bakery` / `sysext.darkspadez.me` — kept only until nodes deployed from it are re-provisioned.
 
-The fork's divergence from `flatcar/main` is **eleven permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
+The fork's divergence from `flatcar/main` is **twelve permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
 
 | # | Patch | File(s) | Kind |
 |---|-------|---------|------|
@@ -28,8 +28,9 @@ The fork's divergence from `flatcar/main` is **eleven permanent patches** plus a
 | 9 | qopsc hub deployment | `tools/http-url-rewrite-server/**` | policy |
 | 10 | sqlite extension | `sqlite.sysext/**`, `docs/sqlite.md`, `docs/index.md`, `release_build_versions.txt` sqlite lines | policy |
 | 11 | btop rebuilt from source for GPU support | `btop.sysext/**`, `docs/btop.md`, `docs/index.md` btop row | policy |
+| 12 | nvidia-runtime official debs | `nvidia-runtime.sysext/create.sh`, `nvidia-runtime.sysext/extract.sh` | upstream bugfix |
 
-Patches marked **upstream bugfix** (2, 7, 8) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
+Patches marked **upstream bugfix** (2, 7, 8, 12) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
 
 ---
 
@@ -162,6 +163,20 @@ A fork-local extension shipping `sqlite3` and `sqldiff`. It does not exist upstr
 
 See `sqlite.sysext/2026-08-05-sqlite-sysext-design.md` for the decisions and their rationale.
 
+### 12. nvidia-runtime official debs
+
+**Files**: `nvidia-runtime.sysext/create.sh`, `nvidia-runtime.sysext/extract.sh` (and the removed v1.18.1 source-build patches).
+
+Upstream compiles `nvidia-container-toolkit` from source via `./scripts/build-packages.sh ubuntu18.04-${arch}` and then `cp -aR out/etc/systemd/.` into the sysext. That broke on toolkit **v1.20.0** (the current `latest`): NVIDIA PR [#1827](https://github.com/NVIDIA/nvidia-container-toolkit/pull/1827) moved `nvidia-cdi-refresh.{service,path}` from `/etc/systemd` to `/lib/systemd`, so the copy fails under `set -e` and the GitHub Actions `create-release (nvidia-runtime:v1.20.0)` job dies. The same failure is on `flatcar/sysext-bakery`.
+
+NVIDIA has shipped the ubuntu18.04 debs as GitHub release assets since at least v1.16.2 (`nvidia-container-toolkit_${ver}_deb_{amd64,arm64}.tar.gz`). This patch consumes those packages instead of compiling, and copies systemd units from either `/etc/systemd` (v1.19.x and earlier) or `/lib/systemd` (v1.20.0+).
+
+**Rules**:
+- Do not restore the v1.18.1 `git am` patches or the `ubuntu18.04` source-build path. Those existed only because `storage.googleapis.com/golang` and a stale `libnvidia-container` submodule broke the compile; official debs do not need them.
+- Keep extracting the ubuntu18.04 debs from the tarball (glibc 2.27) even if NVIDIA later also ships ubuntu20.04/22.04 trees. Flatcar LTS still needs the older glibc.
+- Copy units from **both** `out/etc/systemd` and `out/lib/systemd` when present. A v1.19.1 rebuild must keep working.
+- Do not soften the checksum check. The checksums file prefixes paths with `release-vX.Y.Z-stable/`; match on the basename.
+
 ---
 
 ## Upstream Sync Procedure
@@ -192,6 +207,8 @@ release_build_versions.txt
 release_meta.sh
 tools/http-url-rewrite-server/**
 docs/index.md  docs/sqlite.md  sqlite.sysext/**
+docs/btop.md  btop.sysext/**
+nvidia-runtime.sysext/**
 # plus, while the netbird divergence lasts:
 README.md  docs/netbird.md  netbird.sysext/**
 ```
@@ -199,8 +216,9 @@ README.md  docs/netbird.md  netbird.sysext/**
 And sanity-check the scripts:
 
 ```bash
-bash -n docker.sysext/create.sh lib/generate.sh release_meta.sh release_dispatcher.sh
+bash -n docker.sysext/create.sh lib/generate.sh release_meta.sh release_dispatcher.sh nvidia-runtime.sysext/create.sh
 ./bakery.sh list docker | head
+./bakery.sh list nvidia-runtime | head
 ```
 
 ---
