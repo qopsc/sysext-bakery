@@ -2,6 +2,19 @@ name: Force an update to all metadata.
 
 on:
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'branch to build'
+        type: string
+        required: false
+        default: 'main'
+  # qopsc fork: weekly safety net. The update-extension-metadata matrix in
+  # release.yaml only covers extensions REBUILT in that run, and carries
+  # continue-on-error, so an extension whose upstream version is stable never
+  # gets its bare <name> metadata release retried and a miss is silent.
+  # This job's matrix is `bakery.sh list --plain true` - every extension.
+  schedule:
+    - cron: '0 7 * * 0'
 
 jobs:
   list-extensions:
