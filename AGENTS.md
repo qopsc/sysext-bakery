@@ -13,7 +13,7 @@ Instructions for AI agents (Claude, Copilot, Cursor, Aider, etc.) working on thi
 - **Fork hub**: `extensions.quantumops.consulting` — **not yet stood up**, see Known Issues.
 - **Legacy fork** (retired): `darkspadez/sysext-bakery` / `sysext.darkspadez.me` — kept only until nodes deployed from it are re-provisioned.
 
-The fork's divergence from `flatcar/main` is **thirteen permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
+The fork's divergence from `flatcar/main` is **fourteen permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
 
 | # | Patch | File(s) | Kind |
 |---|-------|---------|------|
@@ -30,6 +30,7 @@ The fork's divergence from `flatcar/main` is **thirteen permanent patches** plus
 | 11 | btop rebuilt from source for GPU support | `btop.sysext/**`, `docs/btop.md`, `docs/index.md` btop row | policy |
 | 12 | nvidia-runtime official debs | `nvidia-runtime.sysext/create.sh`, `nvidia-runtime.sysext/extract.sh` | upstream bugfix |
 | 13 | arcane extension | `arcane.sysext/**`, `docs/arcane.md`, `docs/index.md` arcane row, `release_build_versions.txt` arcane lines | policy |
+| 14 | dust extension | `dust.sysext/**`, `docs/dust.md`, `docs/index.md` dust row, `release_build_versions.txt` dust lines | policy |
 
 Patches marked **upstream bugfix** (2, 7, 8, 12) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
 
@@ -191,6 +192,18 @@ A fork-local extension shipping `arcane-agent` and `arcane-cli` from [getarcanea
 - `docs/index.md` and `docs/arcane.md` link the **qopsc** release tag and `extensions.quantumops.consulting` hub URLs, not flatcar's. There is no flatcar release for this extension.
 - The bundled `arcane-agent.service` sets `PROJECTS_DIRECTORY`, `TEMPLATES_DIRECTORY`, and `DATABASE_URL` for a native (non-container) layout under `/var/lib/arcane-agent`; do not revert these to upstream container `/app` defaults.
 
+### 14. dust extension
+
+**Files**: `dust.sysext/` (create.sh), `docs/dust.md`, the `dust` row in `docs/index.md`, and the two `dust` lines in `release_build_versions.txt`.
+
+A fork-local extension shipping the `dust` binary from [bootandy/dust](https://github.com/bootandy/dust) GitHub release assets. It does not exist upstream — in any conflict take upstream's file and re-add the dust parts.
+
+**Rules**:
+- Ships exactly one binary: `dust` at `/usr/bin/dust`.
+- Upstream releases do not publish checksum files; do not add a checksum step unless upstream starts shipping one.
+- The build asserts the installed version matches the requested one; do not remove that check to make a pinned build pass.
+- `docs/index.md` and `docs/dust.md` link the **qopsc** release tag, not flatcar's. There is no flatcar release for this extension.
+
 ---
 
 ## Upstream Sync Procedure
@@ -222,6 +235,7 @@ release_meta.sh
 tools/http-url-rewrite-server/**
 docs/index.md  docs/sqlite.md  sqlite.sysext/**
 docs/arcane.md  arcane.sysext/**
+docs/dust.md  dust.sysext/**
 docs/btop.md  btop.sysext/**
 nvidia-runtime.sysext/**
 # plus, while the netbird divergence lasts:
@@ -231,10 +245,11 @@ README.md  docs/netbird.md  netbird.sysext/**
 And sanity-check the scripts:
 
 ```bash
-bash -n docker.sysext/create.sh lib/generate.sh release_meta.sh release_dispatcher.sh nvidia-runtime.sysext/create.sh arcane.sysext/create.sh
+bash -n docker.sysext/create.sh lib/generate.sh release_meta.sh release_dispatcher.sh nvidia-runtime.sysext/create.sh arcane.sysext/create.sh dust.sysext/create.sh
 ./bakery.sh list docker | head
 ./bakery.sh list nvidia-runtime | head
 ./bakery.sh list arcane | head
+./bakery.sh list dust | head
 ```
 
 ---
