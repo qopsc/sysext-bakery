@@ -13,7 +13,7 @@ Instructions for AI agents (Claude, Copilot, Cursor, Aider, etc.) working on thi
 - **Fork hub**: `extensions.quantumops.consulting` — **not yet stood up**, see Known Issues.
 - **Legacy fork** (retired): `darkspadez/sysext-bakery` / `sysext.darkspadez.me` — kept only until nodes deployed from it are re-provisioned.
 
-The fork's divergence from `flatcar/main` is **twelve permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
+The fork's divergence from `flatcar/main` is **thirteen permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
 
 | # | Patch | File(s) | Kind |
 |---|-------|---------|------|
@@ -29,6 +29,7 @@ The fork's divergence from `flatcar/main` is **twelve permanent patches** plus a
 | 10 | sqlite extension | `sqlite.sysext/**`, `docs/sqlite.md`, `docs/index.md`, `release_build_versions.txt` sqlite lines | policy |
 | 11 | btop rebuilt from source for GPU support | `btop.sysext/**`, `docs/btop.md`, `docs/index.md` btop row | policy |
 | 12 | nvidia-runtime official debs | `nvidia-runtime.sysext/create.sh`, `nvidia-runtime.sysext/extract.sh` | upstream bugfix |
+| 13 | arcane extension | `arcane.sysext/**`, `docs/arcane.md`, `docs/index.md` arcane row, `release_build_versions.txt` arcane lines | policy |
 
 Patches marked **upstream bugfix** (2, 7, 8, 12) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
 
@@ -177,6 +178,19 @@ NVIDIA has shipped the ubuntu18.04 debs as GitHub release assets since at least 
 - Copy units from **both** `out/etc/systemd` and `out/lib/systemd` when present. A v1.19.1 rebuild must keep working.
 - Do not soften the checksum check. The checksums file prefixes paths with `release-vX.Y.Z-stable/`; match on the basename.
 
+### 13. arcane extension
+
+**Files**: `arcane.sysext/` (create.sh, systemd units, tmpfiles), `docs/arcane.md`, the `arcane` row in `docs/index.md`, and the two `arcane` lines in `release_build_versions.txt`.
+
+A fork-local extension shipping `arcane-agent` and `arcane-cli` from [getarcaneapp/arcane](https://github.com/getarcaneapp/arcane) GitHub release assets. It does not exist upstream — in any conflict take upstream's file and re-add the arcane parts.
+
+**Rules**:
+- Ships exactly two binaries: `arcane-agent` and `arcane-cli`. The upstream `arcane` manager binary is intentionally omitted; run the manager via the published container image or add it only with an explicit scope decision.
+- Verify downloads against `arcane_<version>_checksums.txt` (basename match, like nvidia-runtime patch 12).
+- The build asserts the installed `arcane-agent` version matches the requested one; do not remove that check to make a pinned build pass.
+- `docs/index.md` and `docs/arcane.md` link the **qopsc** release tag and `extensions.quantumops.consulting` hub URLs, not flatcar's. There is no flatcar release for this extension.
+- The bundled `arcane-agent.service` sets `PROJECTS_DIRECTORY`, `TEMPLATES_DIRECTORY`, and `DATABASE_URL` for a native (non-container) layout under `/var/lib/arcane-agent`; do not revert these to upstream container `/app` defaults.
+
 ---
 
 ## Upstream Sync Procedure
@@ -207,6 +221,7 @@ release_build_versions.txt
 release_meta.sh
 tools/http-url-rewrite-server/**
 docs/index.md  docs/sqlite.md  sqlite.sysext/**
+docs/arcane.md  arcane.sysext/**
 docs/btop.md  btop.sysext/**
 nvidia-runtime.sysext/**
 # plus, while the netbird divergence lasts:
@@ -216,9 +231,10 @@ README.md  docs/netbird.md  netbird.sysext/**
 And sanity-check the scripts:
 
 ```bash
-bash -n docker.sysext/create.sh lib/generate.sh release_meta.sh release_dispatcher.sh nvidia-runtime.sysext/create.sh
+bash -n docker.sysext/create.sh lib/generate.sh release_meta.sh release_dispatcher.sh nvidia-runtime.sysext/create.sh arcane.sysext/create.sh
 ./bakery.sh list docker | head
 ./bakery.sh list nvidia-runtime | head
+./bakery.sh list arcane | head
 ```
 
 ---
