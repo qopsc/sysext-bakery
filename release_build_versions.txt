@@ -48,6 +48,9 @@ falco latest
 
 ig latest
 
+iperf3 3.21
+iperf3 latest
+
 k3s v1.32.2+k3s1
 k3s latest
 
