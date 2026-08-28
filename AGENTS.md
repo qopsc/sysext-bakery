@@ -13,7 +13,7 @@ Instructions for AI agents (Claude, Copilot, Cursor, Aider, etc.) working on thi
 - **Fork hub**: `extensions.quantumops.consulting` — **not yet stood up**, see Known Issues.
 - **Legacy fork** (retired): `darkspadez/sysext-bakery` / `sysext.darkspadez.me` — kept only until nodes deployed from it are re-provisioned.
 
-The fork's divergence from `flatcar/main` is **fifteen permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
+The fork's divergence from `flatcar/main` is **sixteen permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
 
 | # | Patch | File(s) | Kind |
 |---|-------|---------|------|
@@ -32,6 +32,7 @@ The fork's divergence from `flatcar/main` is **fifteen permanent patches** plus 
 | 13 | arcane extension | `arcane.sysext/**`, `docs/arcane.md`, `docs/index.md` arcane row, `release_build_versions.txt` arcane lines | policy |
 | 14 | dust extension | `dust.sysext/**`, `docs/dust.md`, `docs/index.md` dust row, `release_build_versions.txt` dust lines | policy |
 | 15 | iperf3 extension | `iperf3.sysext/**`, `docs/iperf3.md`, `docs/index.md` iperf3 row, `release_build_versions.txt` iperf3 lines | policy |
+| 16 | neovim extension | `neovim.sysext/**`, `docs/neovim.md`, `docs/index.md` neovim row, `release_build_versions.txt` neovim lines | policy |
 
 Patches marked **upstream bugfix** (2, 7, 8, 12) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
 
@@ -111,7 +112,7 @@ bakery_hub="extensions.quantumops.consulting"
 
 **File**: `release_build_versions.txt` — the `kata-containers latest` entry is commented out.
 
-This fork builds a **subset** of upstream's extensions. Every other line tracks upstream verbatim **except** the two `sqlite` entries (patch 10), the two `arcane` entries (patch 13), the two `dust` entries (patch 14), and the two `iperf3` entries (patch 15), which are fork-added; take upstream's version in any conflict, then re-apply the kata-containers comment, the sqlite lines, the arcane lines, the dust lines, and the iperf3 lines.
+This fork builds a **subset** of upstream's extensions. Every other line tracks upstream verbatim **except** the two `sqlite` entries (patch 10), the two `arcane` entries (patch 13), the two `dust` entries (patch 14), the two `iperf3` entries (patch 15), and the two `neovim` entries (patch 16), which are fork-added; take upstream's version in any conflict, then re-apply the kata-containers comment, the sqlite lines, the arcane lines, the dust lines, the iperf3 lines, and the neovim lines.
 
 **Why kata-containers is excluded**: `kata-containers-4.0.0-x86-64.raw` is **2,455,023,616 bytes (2.286 GiB)**, against GitHub's hard **2 GiB (2,147,483,648 B)** per-asset limit — over by 14.3%. Do not relitigate this with a format change: backing out the measured EROFS penalty from patch 3 puts squashfs at **~2.11–2.19 GiB, still over**. kata 4.0.0 ships ~26% more than 3.32.0 (TDX/SNP/NVIDIA/dragonball kernel, initrd and firmware variants) and will only grow.
 
@@ -219,6 +220,18 @@ A fork-local extension shipping the `iperf3` binary built from [esnet/iperf](htt
 - The build asserts the installed version matches the requested one; do not remove that check to make a pinned build pass.
 - `docs/index.md` and `docs/iperf3.md` link the **qopsc** release tag, not flatcar's. There is no flatcar release for this extension.
 
+### 16. neovim extension
+
+**Files**: `neovim.sysext/` (create.sh, test.sh), `docs/neovim.md`, the `neovim` row in `docs/index.md`, and the two `neovim` lines in `release_build_versions.txt`.
+
+A fork-local extension shipping Neovim from the official Linux release tarballs, with `vim` and `vi` symlinks to `nvim`. It does not exist upstream — in any conflict take upstream's file and re-add the neovim parts.
+
+**Rules**:
+- Source the official `nvim-linux-{x86_64,arm64}.tar.gz` assets only (v0.11.0+). Do not use AppImage or `flix.sh`.
+- Ship `/usr/bin/nvim` plus `vim` and `vi` symlinks. Runtime files live under `/usr/share/nvim`, parsers under `/usr/lib/nvim`.
+- Verify tarball integrity via the GitHub release asset `digest` field. Assert the glibc symbol-version floor matches btop.
+- `docs/index.md` and `docs/neovim.md` link the **qopsc** release tag, not flatcar's.
+
 ---
 
 ## Upstream Sync Procedure
@@ -253,6 +266,7 @@ docs/arcane.md  arcane.sysext/**
 docs/dust.md  dust.sysext/**
 docs/iperf3.md  iperf3.sysext/**
 docs/btop.md  btop.sysext/**
+docs/neovim.md  neovim.sysext/**
 nvidia-runtime.sysext/**
 # plus, while the netbird divergence lasts:
 README.md  docs/netbird.md  netbird.sysext/**
@@ -261,12 +275,13 @@ README.md  docs/netbird.md  netbird.sysext/**
 And sanity-check the scripts:
 
 ```bash
-bash -n docker.sysext/create.sh lib/generate.sh release_meta.sh release_dispatcher.sh nvidia-runtime.sysext/create.sh arcane.sysext/create.sh dust.sysext/create.sh iperf3.sysext/create.sh
+bash -n docker.sysext/create.sh lib/generate.sh release_meta.sh release_dispatcher.sh nvidia-runtime.sysext/create.sh arcane.sysext/create.sh dust.sysext/create.sh iperf3.sysext/create.sh neovim.sysext/create.sh
 ./bakery.sh list docker | head
 ./bakery.sh list nvidia-runtime | head
 ./bakery.sh list arcane | head
 ./bakery.sh list dust | head
 ./bakery.sh list iperf3 | head
+./bakery.sh list neovim | head
 ```
 
 ---

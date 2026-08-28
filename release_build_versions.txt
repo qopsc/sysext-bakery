@@ -82,6 +82,9 @@ arcane latest
 netbird v0.75.0
 netbird latest
 
+neovim 0.12.5
+neovim latest
+
 nerdctl latest
 
 nomad 1.10.0
