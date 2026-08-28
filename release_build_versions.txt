@@ -43,6 +43,9 @@ docker latest
 dust v1.2.5
 dust latest
 
+eza v0.23.5
+eza latest
+
 falco 0.39.1
 falco latest
 
