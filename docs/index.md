@@ -60,6 +60,7 @@ Check out documentation on specific extensions at the navigation menu on the lef
 
 |    Extension     | Availability | Versions available |
 | ---------------- | ------------ | ------------- |
+| `arcane`         |  released    | [arcane versions](https://github.com/qopsc/sysext-bakery/releases/tag/arcane) |
 | `bird`           |  released    | [bird versions](https://github.com/flatcar/sysext-bakery/releases/tag/bird) |
 | `btop`           |  released    | [btop versions](https://github.com/qopsc/sysext-bakery/releases/tag/btop) |
 | `chrony`         |  released    | [chrony versions](https://github.com/flatcar/sysext-bakery/releases/tag/chrony) |

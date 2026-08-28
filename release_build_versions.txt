@@ -67,6 +67,9 @@ kubernetes latest
 nebula v1.9.5
 nebula latest
 
+arcane v2.9.0
+arcane latest
+
 netbird v0.75.0
 netbird latest
 

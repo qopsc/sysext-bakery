@@ -5,7 +5,7 @@ This repository is the **qopsc fork** of `flatcar/sysext-bakery`. Read `AGENTS.m
 ## Quick facts
 
 - Remotes: `origin` = `qopsc/sysext-bakery` (this fork), `flatcar` = upstream.
-- Divergence from `flatcar/main` is **twelve permanent patches**, plus temporary divergences listed in AGENTS.md (currently: the netbird extension, pending flatcar/sysext-bakery#243). Anything else is drift.
+- Divergence from `flatcar/main` is **thirteen permanent patches**, plus temporary divergences listed in AGENTS.md (currently: the netbird extension, pending flatcar/sysext-bakery#243). Anything else is drift.
 
   | # | Patch | File(s) |
   |---|-------|---------|
@@ -21,12 +21,13 @@ This repository is the **qopsc fork** of `flatcar/sysext-bakery`. Read `AGENTS.m
   | 10 | sqlite extension | `sqlite.sysext/**`, `docs/sqlite.md`, `docs/index.md` |
   | 11 | btop rebuilt from source for GPU support | `btop.sysext/**`, `docs/btop.md`, `docs/index.md` |
   | 12 | nvidia-runtime official debs | `nvidia-runtime.sysext/create.sh`, `nvidia-runtime.sysext/extract.sh` |
+  | 13 | arcane extension | `arcane.sysext/**`, `docs/arcane.md`, `docs/index.md` |
 
 - Patches 1 and 2 are in the same function — they rebase as **one conflict**, resolve together.
 - Patches 2, 7, 8 and 12 fix bugs that also exist upstream; they are carried fork-locally by choice and should disappear if upstream ever fixes them.
 - `.env` values (`bakery`, `bakery_hub`) are load-bearing: `bakery_hub` is baked into sysupdate configs shipped inside released images. Do not change without a node-migration plan.
 - `release_build_versions.txt` tracks upstream **except** the commented-out `kata-containers` line (patch 6): its x86-64 image is 2.286 GiB against GitHub's hard 2 GiB asset limit, and squashfs does not fix it. The two fork-added `sqlite` lines (patch 10) are the other exception.
-- Every other file tracks upstream verbatim — in conflicts, upstream wins outside the twelve patches.
+- Every other file tracks upstream verbatim — in conflicts, upstream wins outside the thirteen patches.
 
 ## Known issue
 
