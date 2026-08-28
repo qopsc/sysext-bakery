@@ -78,6 +78,7 @@ Check out documentation on specific extensions at the navigation menu on the lef
 | `falco`          |  released    | [falco versions](https://github.com/flatcar/sysext-bakery/releases/tag/falco) |
 | `haproxy`        |  released    | [haproxy versions](https://github.com/flatcar/sysext-bakery/releases/tag/haproxy) |
 | `ig`             |  released    | [ig versions](https://github.com/flatcar/sysext-bakery/releases/tag/ig) |
+| `iperf3`         |  released    | [iperf3 versions](https://github.com/qopsc/sysext-bakery/releases/tag/iperf3) |
 | `k3s`            |  released    | [k3s versions](https://github.com/flatcar/sysext-bakery/releases/tag/k3s) |
 | `kata-containers` |  released  | [kata-containers versions](https://github.com/flatcar/sysext-bakery/releases/tag/kata-containers) |
 | `keepalived`     |  released    | [keepalived versions](https://github.com/flatcar/sysext-bakery/releases/tag/keepalived) |
