@@ -27,7 +27,7 @@ This repository is the **qopsc fork** of `flatcar/sysext-bakery`. Read `AGENTS.m
 - Patches 2, 7, 8 and 12 fix bugs that also exist upstream; they are carried fork-locally by choice and should disappear if upstream ever fixes them.
 - `.env` values (`bakery`, `bakery_hub`) are load-bearing: `bakery_hub` is baked into sysupdate configs shipped inside released images. Do not change without a node-migration plan.
 - `release_build_versions.txt` tracks upstream **except** the commented-out `kata-containers` line (patch 6): its x86-64 image is 2.286 GiB against GitHub's hard 2 GiB asset limit, and squashfs does not fix it. The two fork-added `sqlite` lines (patch 10) are the other exception.
-- Every other file tracks upstream verbatim — in conflicts, upstream wins outside the twelve patches.
+- Every other file tracks upstream verbatim — in conflicts, upstream wins outside the thirteen patches.
 
 ## Known issue
 

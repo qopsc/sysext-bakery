@@ -21,9 +21,21 @@ Optional settings such as `EDGE_TRANSPORT`, `PUID`, and `PGID` are documented in
 The agent needs access to the Docker API. Merge the [docker sysext](docker.md) (or another
 runtime that exposes `/var/run/docker.sock`) alongside this one.
 
+## Installation sources
+
+`extensions.quantumops.consulting` (the qopsc bakery hub) **does not resolve yet** — see
+`AGENTS.md` Known Issues. Until the hub A record is deployed, fetch release assets directly
+from GitHub. Automated sysupdate via the hub URLs baked into released images will not work
+on nodes until the hub is live.
+
+Once the hub is deployed, you can switch the example URLs below to
+`https://extensions.quantumops.consulting/extensions/...` (that is also what the sysupdate
+`.conf` shipped inside released images points at).
+
 ## Usage
 
-The snippet below includes automated updates via systemd-sysupdate.
+The snippet below uses GitHub release URLs that work today. It also includes automated
+updates via systemd-sysupdate.
 Sysupdate will stage updates, refresh the merged sysext, and restart `arcane-agent.service`
 — no reboot is required.
 You can deactivate updates by changing `enabled: true` to `enabled: false` in
@@ -44,10 +56,10 @@ storage:
     - path: /opt/extensions/arcane/arcane-v2.9.0-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.quantumops.consulting/extensions/arcane-v2.9.0-x86-64.raw
+        source: https://github.com/qopsc/sysext-bakery/releases/download/arcane-v2.9.0/arcane-v2.9.0-x86-64.raw
     - path: /etc/sysupdate.arcane.d/arcane.conf
       contents:
-        source: https://extensions.quantumops.consulting/extensions/arcane.conf
+        source: https://github.com/qopsc/sysext-bakery/releases/download/arcane-v2.9.0/arcane.conf
     - path: /etc/arcane.d/arcane-agent.env
       mode: 0600
       contents:
@@ -73,4 +85,11 @@ systemd:
             ExecStartPre=/usr/lib/systemd/systemd-sysupdate -C arcane update
             ExecStartPost=/usr/bin/sh -c "readlink --canonicalize /etc/extensions/arcane.raw > /tmp/arcane-new"
             ExecStartPost=/usr/bin/sh -c "if ! cmp --silent /tmp/arcane /tmp/arcane-new; then systemd-sysext refresh && systemctl restart arcane-agent.service; fi"
+```
+
+## Building locally
+
+```
+./bakery.sh list arcane
+./bakery.sh create arcane v2.9.0 --arch x86-64
 ```
