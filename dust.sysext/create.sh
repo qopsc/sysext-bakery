@@ -8,11 +8,16 @@
 
 RELOAD_SERVICES_ON_MERGE="false"
 
+# Fetch and print a list of available dust releases from GitHub.
+# Called by 'bakery.sh list dust'.
 function list_available_versions() {
   list_github_releases "bootandy" "dust"
 }
 # --
 
+# Download the dust binary for the requested version and architecture,
+# install it into the sysext root, and verify the installed version.
+# Called by 'bakery.sh create dust' with sysextroot, arch, and version.
 function populate_sysext_root() {
   local sysextroot="$1"
   local arch="$2"

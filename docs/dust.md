@@ -65,7 +65,7 @@ systemd:
 
 ## Building locally
 
-```
+```bash
 ./bakery.sh list dust
 ./bakery.sh create dust v1.2.5 --arch x86-64
 ```

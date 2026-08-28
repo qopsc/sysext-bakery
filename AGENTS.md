@@ -110,7 +110,7 @@ bakery_hub="extensions.quantumops.consulting"
 
 **File**: `release_build_versions.txt` — the `kata-containers latest` entry is commented out.
 
-This fork builds a **subset** of upstream's extensions. Every other line tracks upstream verbatim **except** the two `sqlite` entries, which are fork-added and belong to patch 10; take upstream's version in any conflict, then re-apply the kata-containers comment and the sqlite lines.
+This fork builds a **subset** of upstream's extensions. Every other line tracks upstream verbatim **except** the two `sqlite` entries (patch 10), the two `arcane` entries (patch 13), and the two `dust` entries (patch 14), which are fork-added; take upstream's version in any conflict, then re-apply the kata-containers comment, the sqlite lines, the arcane lines, and the dust lines.
 
 **Why kata-containers is excluded**: `kata-containers-4.0.0-x86-64.raw` is **2,455,023,616 bytes (2.286 GiB)**, against GitHub's hard **2 GiB (2,147,483,648 B)** per-asset limit — over by 14.3%. Do not relitigate this with a format change: backing out the measured EROFS penalty from patch 3 puts squashfs at **~2.11–2.19 GiB, still over**. kata 4.0.0 ships ~26% more than 3.32.0 (TDX/SNP/NVIDIA/dragonball kernel, initrd and firmware variants) and will only grow.
 
