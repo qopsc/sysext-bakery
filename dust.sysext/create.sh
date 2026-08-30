@@ -46,6 +46,14 @@ function populate_sysext_root() {
   install -m 0755 "extract/dust-${version}-${rust_arch}/dust" \
     "${sysextroot}/usr/bin/dust"
 
+  # qemu-user on an x86-64 builder cannot run the aarch64-gnu binary
+  # (host has no /lib/ld-linux-aarch64.so.1). release.sh builds x86-64
+  # first, so the version assertion still runs on the native arch.
+  case "$(uname -m)" in
+    x86_64) [[ "${arch}" == "x86-64" ]] || return 0 ;;
+    aarch64|arm64) [[ "${arch}" == "arm64" ]] || return 0 ;;
+  esac
+
   local installed_version
   installed_version="$("${sysextroot}/usr/bin/dust" --version | awk '{print $2}')"
   if [[ "${installed_version}" != "${relver}" ]] ; then

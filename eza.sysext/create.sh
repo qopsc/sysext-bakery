@@ -43,6 +43,14 @@ function populate_sysext_root() {
   tar --force-local -xf "${tarball}" -C extract ./eza
   install -m 0755 "extract/eza" "${sysextroot}/usr/bin/eza"
 
+  # qemu-user on an x86-64 builder cannot run the aarch64-gnu binary
+  # (host has no /lib/ld-linux-aarch64.so.1). release.sh builds x86-64
+  # first, so the version assertion still runs on the native arch.
+  case "$(uname -m)" in
+    x86_64) [[ "${arch}" == "x86-64" ]] || return 0 ;;
+    aarch64|arm64) [[ "${arch}" == "arm64" ]] || return 0 ;;
+  esac
+
   local installed_version
   installed_version="$("${sysextroot}/usr/bin/eza" --version \
     | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' \

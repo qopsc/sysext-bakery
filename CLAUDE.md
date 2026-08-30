@@ -5,7 +5,7 @@ This repository is the **qopsc fork** of `flatcar/sysext-bakery`. Read `AGENTS.m
 ## Quick facts
 
 - Remotes: `origin` = `qopsc/sysext-bakery` (this fork), `flatcar` = upstream.
-- Divergence from `flatcar/main` is **sixteen permanent patches**, plus temporary divergences listed in AGENTS.md (currently: the netbird extension, pending flatcar/sysext-bakery#243). Anything else is drift.
+- Divergence from `flatcar/main` is **eighteen permanent patches**, plus temporary divergences listed in AGENTS.md (currently: the netbird extension, pending flatcar/sysext-bakery#243). Anything else is drift.
 
   | # | Patch | File(s) |
   |---|-------|---------|
@@ -25,12 +25,14 @@ This repository is the **qopsc fork** of `flatcar/sysext-bakery`. Read `AGENTS.m
   | 14 | dust extension | `dust.sysext/**`, `docs/dust.md`, `docs/index.md`, `release_build_versions.txt` dust lines |
   | 15 | iperf3 extension | `iperf3.sysext/**`, `docs/iperf3.md`, `docs/index.md`, `release_build_versions.txt` iperf3 lines |
   | 16 | neovim extension | `neovim.sysext/**`, `docs/neovim.md`, `docs/index.md` |
+  | 17 | eza extension | `eza.sysext/**`, `docs/eza.md`, `docs/index.md`, `release_build_versions.txt` eza lines |
+  | 18 | Rebuild published releases | `.github/workflows/rebuild.yaml`, `rebuild_dispatcher.sh` |
 
 - Patches 1 and 2 are in the same function — they rebase as **one conflict**, resolve together.
 - Patches 2, 7, 8 and 12 fix bugs that also exist upstream; they are carried fork-locally by choice and should disappear if upstream ever fixes them.
 - `.env` values (`bakery`, `bakery_hub`) are load-bearing: `bakery_hub` is baked into sysupdate configs shipped inside released images. Do not change without a node-migration plan.
-- `release_build_versions.txt` tracks upstream **except** the commented-out `kata-containers` line (patch 6): its x86-64 image is 2.286 GiB against GitHub's hard 2 GiB asset limit, and squashfs does not fix it. The fork-added `sqlite` lines (patch 10), `arcane` lines (patch 13), `dust` lines (patch 14), `iperf3` lines (patch 15), and `neovim` lines (patch 16) are the other exceptions.
-- Every other file tracks upstream verbatim — in conflicts, upstream wins outside the sixteen patches.
+- `release_build_versions.txt` tracks upstream **except** the commented-out `kata-containers` line (patch 6): its x86-64 image is 2.286 GiB against GitHub's hard 2 GiB asset limit, and squashfs does not fix it. The fork-added `sqlite` lines (patch 10), `arcane` lines (patch 13), `dust` lines (patch 14), `iperf3` lines (patch 15), `neovim` lines (patch 16), and `eza` lines (patch 17) are the other exceptions.
+- Every other file tracks upstream verbatim — in conflicts, upstream wins outside the eighteen patches.
 
 ## Known issue
 
@@ -53,3 +55,5 @@ git diff flatcar/main main --stat   # must show only the expected fork files
 ./bakery.sh list <extension>                 # list available versions
 ./bakery.sh create <extension> <version>     # bake a sysext (defaults: erofs, docker-only)
 ```
+
+To remake an already-published version after a bake-script or unit change, run the **Rebuild a published sysext release** workflow (`extension` + `version`, or a `releases` list). The daily `release.yaml` only builds versions that have no GitHub release yet.

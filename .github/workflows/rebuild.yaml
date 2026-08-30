@@ -1,0 +1,200 @@
+name: Rebuild a published sysext release
+
+# qopsc fork: the daily release.yaml only builds versions that have no GitHub
+# release yet. Use this workflow to remake an existing version after a bake
+# script or bundled unit change (e.g. arcane v2.9.0 after the agent-unit
+# env-default patch).
+on:
+  workflow_dispatch:
+    inputs:
+      extension:
+        description: 'Sysext to rebuild (e.g. arcane). Required unless "releases" is set.'
+        type: string
+        required: false
+      version:
+        description: 'Version as bakery.sh list reports it (e.g. v2.9.0 or latest). Required unless "releases" is set.'
+        type: string
+        required: false
+      releases:
+        description: 'Optional comma-separated extension:version list (e.g. "arcane:v2.9.0,dust:v1.2.5"). Overrides extension+version.'
+        type: string
+        required: false
+      branch:
+        description: 'Branch to build from'
+        type: string
+        required: false
+        default: 'main'
+
+jobs:
+  list-rebuilds:
+    runs-on: ubuntu-24.04
+    outputs:
+      builds: ${{ steps.list.outputs.builds }}
+      extensions: ${{ steps.list.outputs.extensions }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch != '' && inputs.branch || 'main' }}
+          path: bakery
+
+      - name: install prerequisites
+        run: |
+          set -euxo pipefail
+          sudo apt update -qq && sudo apt install -yqq \
+            curl \
+            jq
+
+      - name: list
+        id: list
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXTENSION: ${{ inputs.extension }}
+          VERSION: ${{ inputs.version }}
+          RELEASES: ${{ inputs.releases }}
+        run: |
+          pushd bakery
+          ./rebuild_dispatcher.sh
+
+  create-release:
+    needs: list-rebuilds
+    if: ${{ needs.list-rebuilds.outputs.builds != '[]' && needs.list-rebuilds.outputs.builds != '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ${{ fromJson(needs.list-rebuilds.outputs.builds) }}
+    continue-on-error: false
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Set up qemu / binfmt misc for cross-platform builds
+        uses: docker/setup-qemu-action@v3
+
+      - name: Check out the bakery repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch != '' && inputs.branch || 'main' }}
+          path: bakery
+
+      - name: install prerequisites
+        run: |
+          set -euxo pipefail
+          sudo apt update -qq && sudo apt install -yqq \
+            curl \
+            jq \
+            squashfs-tools \
+            xz-utils \
+            erofs-utils
+
+      - name: delete existing GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euxo pipefail
+          spec="${{ matrix.release }}"
+          tag="${spec%%:*}-${spec#*:}"
+          # Keep the git tag; release.sh force-updates it to this build.
+          gh release delete "${tag}" --repo "${GITHUB_REPOSITORY}" --yes \
+            || echo "No existing '${tag}' release to delete."
+
+      - name: build
+        id: build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pushd bakery
+          ./release.sh ${{ matrix.release }}
+
+      - name: create a new release
+        uses: softprops/action-gh-release@v2
+        with:
+          make_latest: false
+          tag_name: ${{ steps.build.outputs.tag }}
+          body_path: bakery/Release.md
+          files: |
+            bakery/SHA256SUMS
+            bakery/*.raw
+            bakery/*.conf
+            bakery/*-build.log
+
+  update-extension-metadata:
+    needs: [ list-rebuilds, create-release ]
+    if: ${{ needs.list-rebuilds.outputs.extensions != '[]' && needs.list-rebuilds.outputs.extensions != '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        extension: ${{ fromJson(needs.list-rebuilds.outputs.extensions) }}
+    continue-on-error: true
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch != '' && inputs.branch || 'main' }}
+          path: bakery
+
+      - name: install prerequisites
+        run: |
+          set -euxo pipefail
+          sudo apt update -qq && sudo apt install -yqq \
+            curl \
+            jq \
+            squashfs-tools \
+            xz-utils \
+            erofs-utils
+
+      - name: Fetch extension release metadata
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pushd bakery
+          ./release_meta.sh ${{ matrix.extension }}
+
+      - name: create new metadata release
+        uses: softprops/action-gh-release@v2
+        with:
+          make_latest: false
+          tag_name: ${{ matrix.extension }}
+          body_path: bakery/Release.md
+          files: |
+            bakery/SHA256SUMS
+            bakery/*.conf
+
+  update-global-metadata:
+    needs: [ list-rebuilds, update-extension-metadata ]
+    if: ${{ needs.list-rebuilds.outputs.extensions != '[]' && needs.list-rebuilds.outputs.extensions != '' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch != '' && inputs.branch || 'main' }}
+          path: bakery
+
+      - name: install prerequisites
+        run: |
+          set -euxo pipefail
+          sudo apt update -qq && sudo apt install -yqq \
+            curl \
+            jq \
+            squashfs-tools \
+            xz-utils \
+            erofs-utils
+
+      - name: Fetch all extension releases metadata
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pushd bakery
+          ./release_meta.sh
+
+      - name: create new metadata release
+        uses: softprops/action-gh-release@v2
+        with:
+          make_latest: true
+          tag_name: SHA256SUMS
+          body_path: bakery/Release.md
+          files: |
+            bakery/SHA256SUMS

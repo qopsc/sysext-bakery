@@ -79,6 +79,14 @@ function populate_sysext_root() {
     return 1
   fi
 
+  # qemu-user on an x86-64 builder cannot run the arm64 nvim binary
+  # (host has no /lib/ld-linux-aarch64.so.1). Digest + glibc floor already
+  # ran above; the headless smoke test runs on the native-arch build.
+  case "$(uname -m)" in
+    x86_64) [[ "${arch}" == "x86-64" ]] || return 0 ;;
+    aarch64|arm64) [[ "${arch}" == "arm64" ]] || return 0 ;;
+  esac
+
   if ! "${sysextroot}/usr/bin/vim" --headless '+qa'; then
     echo "ERROR: neovim headless smoke test failed." >&2
     return 1

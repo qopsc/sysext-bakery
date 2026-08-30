@@ -23,10 +23,13 @@ cd "iperf-${version}"
 
 ./configure --prefix=/usr
 make -j"$(nproc)"
-make DESTDIR=/staging install
+make install
 
+# flix.sh resolves the musl loader relative to FOLDER. Installing into
+# DESTDIR=/staging leaves /lib/ld-musl-*.so.1 in the Alpine root, so
+# FOLDER must be / (same pattern as sqlite).
 cd /install_root
-/tools/flix.sh /staging iperf3 /usr/bin/iperf3
+/tools/flix.sh / iperf3 /usr/bin/iperf3
 
 installed="$(/install_root/iperf3/usr/bin/iperf3 --version | awk '{print $2}')"
 if [ "${installed}" != "${version}" ]; then
