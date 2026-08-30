@@ -143,16 +143,22 @@ function list_gitlab_tags() {
   local url="https://${instance}/api/v4/projects/${projectid}/repository/tags?per_page=100&order_by=updated&sort=desc"
 
   local tags
-  if tags="$($curl "${url}")"; then
-    printf '%s' "${tags}" | jq -r '.[].name' | sort -Vr
+  local names
+  local refs
+  if tags="$($curl "${url}")" \
+      && names="$(printf '%s' "${tags}" | jq -r '.[].name')"; then
+    if [[ -n "${names}" ]]; then
+      printf '%s\n' "${names}" | sort -Vr
+    fi
     return 0
   fi
 
   if [[ -n "${git_url}" ]]; then
     echo "WARNING: GitLab API ${instance} project ${projectid} failed; using git ls-remote." >&2
-    git ls-remote --tags --refs "${git_url}" \
-      | awk -F/ '{print $NF}' \
-      | sort -Vr
+    refs="$(git ls-remote --tags --refs "${git_url}")" || return 1
+    if [[ -n "${refs}" ]]; then
+      printf '%s\n' "${refs}" | awk -F/ '{print $NF}' | sort -Vr
+    fi
     return 0
   fi
 
@@ -189,12 +195,22 @@ function extension_name() {
 # Consume the full list instead of piping to `head -n 1`. Closing the pipe
 # after the first line makes jq/echo write to a closed fd (Broken pipe) and
 # can hide a failed listing behind an empty "latest" result.
+# Capture list_available_versions' status separately: process substitution
+# would let mapfile succeed on a partial list even when the producer failed.
 function list_latest_release() {
-  local versions
-  mapfile -t versions < <(list_available_versions)
-  if [[ ${#versions[@]} -eq 0 ]]; then
+  local -a versions
+  local raw
+  local status=0
+
+  raw="$(list_available_versions)" || status=$?
+  if [[ "${status}" -ne 0 ]]; then
+    return "${status}"
+  fi
+  if [[ -z "${raw}" ]]; then
     return 1
   fi
+
+  mapfile -t versions <<< "${raw}"
   echo "${versions[0]}"
 }
 # --

@@ -273,8 +273,8 @@ The daily `release.yaml` only builds versions that have **no** GitHub release ye
 - `curl: (22) The requested URL returned error: 403` while resolving `bird latest` — `gitlab.nic.cz` throttles unauthenticated GitHub Actions IPs. Process substitution hid `bakery.sh`'s non-zero exit, so bird latest was silently skipped.
 
 **Rules**:
-- `list_latest_release` must consume the full version list (e.g. `mapfile`) and print the first line. Do not restore `... | head -n 1`.
-- `list_gitlab_tags` takes an optional third argument: a git clone URL. On API failure it falls back to `git ls-remote --tags --refs`. Bird must keep passing `https://gitlab.nic.cz/labs/bird.git`.
+- `list_latest_release` must consume the full version list, check `list_available_versions`'s exit status, and print the first line only on success. Do not restore `... | head -n 1` or hide a failed listing behind process substitution.
+- `list_gitlab_tags` takes an optional third argument: a git clone URL. On API failure it falls back to `git ls-remote --tags --refs`. Check `jq` and `git ls-remote` before treating their output as a successful listing. Bird must keep passing `https://gitlab.nic.cz/labs/bird.git`.
 - `release_dispatcher.sh` must capture `./bakery.sh list … --latest true` so a failed listing prints `ERROR listing upstream versions; skipping` instead of dropping the line. Do not fail the whole dispatcher for one extension (same continue-on-error stance as patch 8).
 
 ---
