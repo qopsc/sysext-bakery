@@ -30,7 +30,7 @@ make install
 # inside the sysext tree, so executing the flixed binary in this container
 # reports "not found" even though the file is there (same as sqlite:
 # version-check, then flix).
-installed="$(iperf3 --version | awk '{print $2}')"
+installed="$(/usr/bin/iperf3 --version | awk '{print $2}')"
 if [ "${installed}" != "${version}" ]; then
   echo "ERROR: installed iperf3 version '${installed}' != requested '${version}'." >&2
   exit 1
