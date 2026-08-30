@@ -134,14 +134,29 @@ function github_release_exists() {
 function list_gitlab_tags() {
   local instance="$1"
   local projectid="$2"
+  # Optional clone URL used when the REST API returns 403/429 (gitlab.nic.cz
+  # throttles unauthenticated GitHub Actions IPs).
+  local git_url="${3:-}"
 
-  local curl="curl -fsSL --retry-delay 1 --retry 60 --retry-connrefused"
-  curl="$curl --retry-max-time 60 --connect-timeout 20"
+  local curl="curl -fsSL --retry-delay 2 --retry 3 --retry-all-errors"
+  curl="$curl --retry-max-time 30 --connect-timeout 20 -A sysext-bakery"
+  local url="https://${instance}/api/v4/projects/${projectid}/repository/tags?per_page=100&order_by=updated&sort=desc"
 
-  $curl \
-    "https://${instance}/api/v4/projects/${projectid}/repository/tags" \
-    | jq -r '.[].name' \
-    | sort -Vr
+  local tags
+  if tags="$($curl "${url}")"; then
+    printf '%s' "${tags}" | jq -r '.[].name' | sort -Vr
+    return 0
+  fi
+
+  if [[ -n "${git_url}" ]]; then
+    echo "WARNING: GitLab API ${instance} project ${projectid} failed; using git ls-remote." >&2
+    git ls-remote --tags --refs "${git_url}" \
+      | awk -F/ '{print $NF}' \
+      | sort -Vr
+    return 0
+  fi
+
+  return 1
 }
 # --
 
@@ -170,8 +185,17 @@ function extension_name() {
 
 # Filter the latest version from an extension's version list.
 # Must be called with the extension "create.sh" script sourced.
+#
+# Consume the full list instead of piping to `head -n 1`. Closing the pipe
+# after the first line makes jq/echo write to a closed fd (Broken pipe) and
+# can hide a failed listing behind an empty "latest" result.
 function list_latest_release() {
-  list_available_versions | head -n 1
+  local versions
+  mapfile -t versions < <(list_available_versions)
+  if [[ ${#versions[@]} -eq 0 ]]; then
+    return 1
+  fi
+  echo "${versions[0]}"
 }
 # --
 
