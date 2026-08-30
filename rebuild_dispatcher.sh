@@ -64,21 +64,51 @@ for spec in "${specs[@]}"; do
     exit 1
   fi
 
+  resolved=()
   if [[ "${ver}" == "latest" ]]; then
-    ver="$(./bakery.sh list "${ext}" --latest true)"
-    if [[ -z "${ver}" ]]; then
-      echo "ERROR: could not resolve latest version for '${ext}'." >&2
-      exit 1
-    fi
+    mapfile -t resolved < <(./bakery.sh list "${ext}" --latest true)
+  else
+    resolved=( "${ver}" )
+  fi
+  if [[ ${#resolved[@]} -eq 0 ]]; then
+    echo "ERROR: could not resolve version for '${ext}'." >&2
+    exit 1
   fi
 
-  echo "*  rebuild ${ext} ${ver}"
-  if [[ " ${builds[*]} " != *" ${ext}:${ver} "* ]]; then
-    builds+=( "${ext}:${ver}" )
+  # Reject anything bakery.sh list does not know. An unknown version must not
+  # reach the workflow's gh release delete step.
+  mapfile -t available < <(./bakery.sh list "${ext}")
+  if [[ ${#available[@]} -eq 0 ]]; then
+    echo "ERROR: '${ext}' has no listable versions." >&2
+    exit 1
   fi
-  if [[ " ${extensions[*]} " != *" ${ext} "* ]]; then
-    extensions+=( "${ext}" )
-  fi
+
+  for ver in "${resolved[@]}"; do
+    [[ -z "${ver}" ]] && continue
+    if [[ ! "${ver}" =~ ^[a-zA-Z0-9][a-zA-Z0-9._+-]*$ ]]; then
+      echo "ERROR: invalid version '${ver}' for '${ext}'." >&2
+      exit 1
+    fi
+    found=false
+    for avail in "${available[@]}"; do
+      if [[ "${avail}" == "${ver}" ]]; then
+        found=true
+        break
+      fi
+    done
+    if [[ "${found}" != true ]]; then
+      echo "ERROR: '${ver}' is not a known ${ext} version (not in './bakery.sh list ${ext}')." >&2
+      exit 1
+    fi
+
+    echo "*  rebuild ${ext} ${ver}"
+    if [[ " ${builds[*]} " != *" ${ext}:${ver} "* ]]; then
+      builds+=( "${ext}:${ver}" )
+    fi
+    if [[ " ${extensions[*]} " != *" ${ext} "* ]]; then
+      extensions+=( "${ext}" )
+    fi
+  done
 done
 
 cat >> "${output}" <<EOF

@@ -25,6 +25,10 @@ on:
         required: false
         default: 'main'
 
+# Least privilege at workflow scope; jobs that publish override to write.
+permissions:
+  contents: read
+
 jobs:
   list-rebuilds:
     runs-on: ubuntu-24.04
@@ -86,24 +90,27 @@ jobs:
             xz-utils \
             erofs-utils
 
-      - name: delete existing GitHub release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euxo pipefail
-          spec="${{ matrix.release }}"
-          tag="${spec%%:*}-${spec#*:}"
-          # Keep the git tag; release.sh force-updates it to this build.
-          gh release delete "${tag}" --repo "${GITHUB_REPOSITORY}" --yes \
-            || echo "No existing '${tag}' release to delete."
-
       - name: build
         id: build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_SPEC: ${{ matrix.release }}
         run: |
+          set -euxo pipefail
           pushd bakery
-          ./release.sh ${{ matrix.release }}
+          ./release.sh "${RELEASE_SPEC}"
+
+      - name: delete existing GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_SPEC: ${{ matrix.release }}
+        run: |
+          set -euxo pipefail
+          spec="${RELEASE_SPEC}"
+          tag="${spec%%:*}-${spec#*:}"
+          # Build already succeeded. Keep the git tag; release.sh force-updated it.
+          gh release delete "${tag}" --repo "${GITHUB_REPOSITORY}" --yes \
+            || echo "No existing '${tag}' release to delete."
 
       - name: create a new release
         uses: softprops/action-gh-release@v2
@@ -147,9 +154,11 @@ jobs:
       - name: Fetch extension release metadata
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXTENSION: ${{ matrix.extension }}
         run: |
+          set -euxo pipefail
           pushd bakery
-          ./release_meta.sh ${{ matrix.extension }}
+          ./release_meta.sh "${EXTENSION}"
 
       - name: create new metadata release
         uses: softprops/action-gh-release@v2

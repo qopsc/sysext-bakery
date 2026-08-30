@@ -257,9 +257,10 @@ The daily `release.yaml` only builds versions that have **no** GitHub release ye
 **Rules**:
 - `workflow_dispatch` only. Inputs are `extension` + `version` (or a comma-separated `releases` list of `extension:version`), plus optional `branch` (default `main`).
 - `version` / a list entry may be `latest`; `rebuild_dispatcher.sh` resolves that the same way `release_dispatcher.sh` does.
-- Delete the existing GitHub **release** before rebuilding (`gh release delete`). Do **not** pass `--cleanup-tag`; `release.sh` force-updates the git tag to the new build.
+- Reject any version that `./bakery.sh list <extension>` does not return, including a resolved `latest`. An unknown version must not reach `gh release delete`.
+- Build both architectures first. Delete the existing GitHub **release** only after the build succeeds, immediately before upload (`gh release delete`). Do **not** pass `--cleanup-tag`; `release.sh` force-updates the git tag to the new build.
 - After the rebuild, refresh that extension's metadata release and the global `SHA256SUMS`.
-- Validate extension names against `*.sysext/` before building. Do not interpolate workflow inputs into bash source — pass them as env vars to `rebuild_dispatcher.sh`.
+- Validate extension names against `*.sysext/` before building. Do not interpolate workflow inputs or `matrix.*` values into bash source — pass them as env vars (`RELEASE_SPEC`, `EXTENSION`).
 
 ---
 
@@ -271,7 +272,7 @@ The scheduled release workflow only creates versions that are missing from GitHu
 2. Set `extension` to `arcane` and `version` to `v2.9.0` (or `releases` to `arcane:v2.9.0,dust:v1.2.5` for a batch).
 3. Leave `branch` as `main` unless you are testing a feature branch.
 
-That deletes the existing GitHub release, rebuilds both architectures, republishes, and refreshes metadata.
+That rebuilds both architectures, then replaces the existing GitHub release and refreshes metadata. The old release stays published if the build fails.
 
 ---
 
