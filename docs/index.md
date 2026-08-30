@@ -97,6 +97,7 @@ Check out documentation on specific extensions at the navigation menu on the lef
 | `scx`            |  released    | [scx versions](https://github.com/flatcar/sysext-bakery/releases/tag/scx) |
 | `sqlite`         |  released    | [sqlite versions](https://github.com/qopsc/sysext-bakery/releases/tag/sqlite) |
 | `tailscale`      |  released    | [tailscale versions](https://github.com/flatcar/sysext-bakery/releases/tag/tailscale) |
+| `tilde`          |  released    | [tilde versions](https://github.com/qopsc/sysext-bakery/releases/tag/tilde) |
 | `vault`          |  released    | [vault versions](https://github.com/flatcar/sysext-bakery/releases/tag/vault) |
 | `wasmcloud`      |  released    | [wasmcloud versions](https://github.com/flatcar/sysext-bakery/releases/tag/wasmcloud) |
 | `wasmedge`       |  released    | [wasmedge versions](https://github.com/flatcar/sysext-bakery/releases/tag/wasmedge) |
