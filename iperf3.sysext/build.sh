@@ -30,7 +30,10 @@ make install
 # inside the sysext tree, so executing the flixed binary in this container
 # reports "not found" even though the file is there (same as sqlite:
 # version-check, then flix).
-installed="$(/usr/bin/iperf3 --version | awk '{print $2}')"
+# --version is multi-line ("iperf 3.21 ...", hostname, "Optional features
+# available: ..."). awk '{print $2}' on every line concatenates
+# "3.21\\n<hostname>\\nfeatures" and fails the equality check.
+installed="$(/usr/bin/iperf3 --version | awk 'NR==1 {print $2; exit}')"
 if [ "${installed}" != "${version}" ]; then
   echo "ERROR: installed iperf3 version '${installed}' != requested '${version}'." >&2
   exit 1
