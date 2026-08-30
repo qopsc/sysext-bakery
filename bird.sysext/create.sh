@@ -36,6 +36,7 @@ function list_available_versions() {
   # true
 
   list_gitlab_tags "gitlab.nic.cz" "6" \
+    "https://gitlab.nic.cz/labs/bird.git" \
     | sed 's/^v//'
 }
 # --

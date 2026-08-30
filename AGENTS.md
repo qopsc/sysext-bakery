@@ -13,7 +13,7 @@ Instructions for AI agents (Claude, Copilot, Cursor, Aider, etc.) working on thi
 - **Fork hub**: `extensions.quantumops.consulting` — **not yet stood up**, see Known Issues.
 - **Legacy fork** (retired): `darkspadez/sysext-bakery` / `sysext.darkspadez.me` — kept only until nodes deployed from it are re-provisioned.
 
-The fork's divergence from `flatcar/main` is **eighteen permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
+The fork's divergence from `flatcar/main` is **nineteen permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
 
 | # | Patch | File(s) | Kind |
 |---|-------|---------|------|
@@ -35,8 +35,9 @@ The fork's divergence from `flatcar/main` is **eighteen permanent patches** plus
 | 16 | neovim extension | `neovim.sysext/**`, `docs/neovim.md`, `docs/index.md` neovim row, `release_build_versions.txt` neovim lines | policy |
 | 17 | eza extension | `eza.sysext/**`, `docs/eza.md`, `docs/index.md` eza row, `release_build_versions.txt` eza lines | policy |
 | 18 | Rebuild published releases | `.github/workflows/rebuild.yaml`, `rebuild_dispatcher.sh` | policy |
+| 19 | List-builds listing resilience | `lib/helpers.sh`, `release_dispatcher.sh`, `bird.sysext/create.sh` | upstream bugfix |
 
-Patches marked **upstream bugfix** (2, 7, 8, 12) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
+Patches marked **upstream bugfix** (2, 7, 8, 12, 19) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
 
 ---
 
@@ -262,6 +263,20 @@ The daily `release.yaml` only builds versions that have **no** GitHub release ye
 - After the rebuild, refresh that extension's metadata release and the global `SHA256SUMS`.
 - Validate extension names against `*.sysext/` before building. Do not interpolate workflow inputs or `matrix.*` values into bash source — pass them as env vars (`RELEASE_SPEC`, `EXTENSION`).
 
+### 19. List-builds listing resilience
+
+**Files**: `lib/helpers.sh` (`list_latest_release`, `list_gitlab_tags`), `release_dispatcher.sh`, `bird.sysext/create.sh`.
+
+`list-builds` in run 33328132566 succeeded but logged three listing defects that also exist upstream:
+
+- `neovim.sysext/create.sh: echo: write error: Broken pipe` and `jq: error: writing output failed: Broken pipe` (vault) — `list_latest_release` piped to `head -n 1`, which closes the pipe after the first version.
+- `curl: (22) The requested URL returned error: 403` while resolving `bird latest` — `gitlab.nic.cz` throttles unauthenticated GitHub Actions IPs. Process substitution hid `bakery.sh`'s non-zero exit, so bird latest was silently skipped.
+
+**Rules**:
+- `list_latest_release` must consume the full version list, check `list_available_versions`'s exit status, and print the first line only on success. Do not restore `... | head -n 1` or hide a failed listing behind process substitution.
+- `list_gitlab_tags` takes an optional third argument: a git clone URL. On API failure it falls back to `git ls-remote --tags --refs`. Check `jq` and `git ls-remote` before treating their output as a successful listing. Bird must keep passing `https://gitlab.nic.cz/labs/bird.git`.
+- `release_dispatcher.sh` must capture `./bakery.sh list … --latest true` so a failed listing prints `ERROR listing upstream versions; skipping` instead of dropping the line. Do not fail the whole dispatcher for one extension (same continue-on-error stance as patch 8).
+
 ---
 
 ## Rebuilding a published version
@@ -302,6 +317,9 @@ Expected, and nothing else:
 rebuild_dispatcher.sh
 docker.sysext/create.sh
 lib/generate.sh
+lib/helpers.sh
+release_dispatcher.sh
+bird.sysext/create.sh
 release_build_versions.txt
 release_meta.sh
 tools/http-url-rewrite-server/**
@@ -320,7 +338,7 @@ README.md  docs/netbird.md  netbird.sysext/**
 And sanity-check the scripts:
 
 ```bash
-bash -n docker.sysext/create.sh lib/generate.sh release_meta.sh release_dispatcher.sh rebuild_dispatcher.sh nvidia-runtime.sysext/create.sh arcane.sysext/create.sh dust.sysext/create.sh eza.sysext/create.sh iperf3.sysext/create.sh iperf3.sysext/build.sh neovim.sysext/create.sh
+bash -n docker.sysext/create.sh lib/generate.sh lib/helpers.sh release_meta.sh release_dispatcher.sh rebuild_dispatcher.sh nvidia-runtime.sysext/create.sh arcane.sysext/create.sh dust.sysext/create.sh eza.sysext/create.sh iperf3.sysext/create.sh iperf3.sysext/build.sh neovim.sysext/create.sh bird.sysext/create.sh
 ./bakery.sh list docker | head
 ./bakery.sh list nvidia-runtime | head
 ./bakery.sh list arcane | head

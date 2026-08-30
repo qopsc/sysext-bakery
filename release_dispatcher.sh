@@ -27,7 +27,19 @@ for image in "${images[@]}"; do
 
   if [ "${version}" = "latest" ] ; then
     unset version
-    mapfile -t version < <( ./bakery.sh list "${extension}" --latest true )
+    # Process substitution hides bakery.sh's exit status, so capture stdout
+    # and fail this entry loudly instead of silently skipping it (bird latest
+    # was dropped on a gitlab.nic.cz 403 in run 33328132566).
+    latest_out=""
+    if ! latest_out="$(./bakery.sh list "${extension}" --latest true)"; then
+      echo "*  ${extension} latest: ERROR listing upstream versions; skipping." >&2
+      continue
+    fi
+    mapfile -t version <<< "${latest_out}"
+    if [[ ${#version[@]} -eq 0 || -z "${version[0]}" ]]; then
+      echo "*  ${extension} latest: ERROR no versions returned; skipping." >&2
+      continue
+    fi
   fi
 
   build_required="false"
