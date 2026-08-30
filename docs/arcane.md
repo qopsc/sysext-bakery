@@ -10,12 +10,29 @@ The extension includes `arcane-agent.service`, which starts the agent on port 35
 `/etc/arcane.d/arcane-agent.env` is populated. The unit carries `ConditionFileNotEmpty` on
 that file, so the agent stays stopped until you configure it.
 
+The unit sets `PORT=3553` and `GIN_MODE=release` to match
+`docker/Dockerfile-agent`. Those are image `ENV` values, not binary defaults —
+`config.go` declares `PORT` as `"3552"`, and this sysext ships the bare binary —
+so without the unit lines the agent would bind `:3552` while every published
+example says 3553. `AGENT_MODE=true` stays in the unit (same as the official
+agent image). For an edge agent, add `EDGE_AGENT=true` to the env file; Arcane
+then keeps agent mode and selects the outbound tunnel. The env file overrides
+unit `Environment=` values, so you do not need a systemd drop-in to change mode
+or bind address.
+
 Populate the env file with at least:
 
 - `AGENT_TOKEN` — agent API token from your Arcane manager
 - `MANAGER_API_URL` — base URL of the manager (for example `http://10.1.1.4:3552`)
+- `LISTEN` — bind address. **Unset means every interface.** A host service has no
+  network namespace, and this agent proxies the Docker API, so an unset `LISTEN`
+  publishes root-equivalent access on every address the host has. Set
+  `LISTEN=127.0.0.1` for an edge agent — the edge tunnel client dials its own
+  listener over loopback, so nothing else needs to reach it — or the
+  management-network address for a direct agent.
 
-Optional settings such as `EDGE_TRANSPORT`, `PUID`, and `PGID` are documented in the
+Optional settings such as `EDGE_AGENT`, `EDGE_TRANSPORT`, `PUID`, and `PGID` are
+documented in the
 [upstream `.env.example`](https://github.com/getarcaneapp/arcane/blob/main/.env.example).
 
 The agent needs access to the Docker API. Merge the [docker sysext](docker.md) (or another
@@ -41,7 +58,9 @@ Sysupdate will stage updates, refresh the merged sysext, and restart `arcane-age
 You can deactivate updates by changing `enabled: true` to `enabled: false` in
 `systemd-sysupdate.timer`.
 
-Note that the snippet is for the x86-64 version of Arcane v2.9.0.
+Note that the snippet is for the x86-64 version of Arcane v2.9.0. It is a
+direct agent: `LISTEN` is the address the manager must be able to reach. For an
+edge agent, add `EDGE_AGENT=true` and set `LISTEN=127.0.0.1` instead.
 
 Check out the metadata release at
 https://github.com/qopsc/sysext-bakery/releases/tag/arcane for a list of all versions
@@ -66,6 +85,7 @@ storage:
         inline: |
           AGENT_TOKEN=arc_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
           MANAGER_API_URL=http://10.1.1.4:3552
+          LISTEN=10.1.1.5
   links:
     - target: /opt/extensions/arcane/arcane-v2.9.0-x86-64.raw
       path: /etc/extensions/arcane.raw

@@ -8,6 +8,8 @@ ConditionFileNotEmpty=/etc/arcane.d/arcane-agent.env
 [Service]
 EnvironmentFile=/etc/arcane.d/arcane-agent.env
 Environment=AGENT_MODE=true
+Environment=PORT=3553
+Environment=GIN_MODE=release
 Environment=PROJECTS_DIRECTORY=/var/lib/arcane-agent/data/projects
 Environment=TEMPLATES_DIRECTORY=/var/lib/arcane-agent/data/templates
 Environment=DATABASE_URL=file:/var/lib/arcane-agent/data/arcane.db?_pragma=journal_mode(WAL)&_pragma=busy_timeout(2500)&_txlock=immediate
