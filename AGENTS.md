@@ -220,7 +220,7 @@ A fork-local extension shipping the `iperf3` binary built from [esnet/iperf](htt
 - `flix.sh` must be invoked with `FOLDER=/` after `make install` (not `DESTDIR=/staging`). The musl loader lives in the Alpine root, not in a DESTDIR tree; `FOLDER=/staging` fails with `cp: cannot stat '/staging/lib/ld-musl-*.so.1'`. Same pattern as sqlite.
 - Verify downloads against `iperf-<version>.tar.gz.sha256` (basename match, like nvidia-runtime patch 12).
 - Filter `list_available_versions` to numeric tags only; esnet/iperf publishes beta tags that are not marked GitHub prereleases.
-- The build asserts the installed version matches the requested one; do not remove that check to make a pinned build pass.
+- The build asserts the installed version matches the requested one; do not remove that check to make a pinned build pass. Run that check on `/usr/bin/iperf3` after `make install` and **before** `flix.sh`. The flixed binary's interpreter is `/usr/local/iperf3/ld-musl-*.so.1`, which is not on the container root, so executing it reports `not found`.
 - `docs/index.md` and `docs/iperf3.md` link the **qopsc** release tag, not flatcar's. There is no flatcar release for this extension.
 
 ### 16. neovim extension
