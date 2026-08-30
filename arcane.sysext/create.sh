@@ -41,6 +41,15 @@ function populate_sysext_root() {
   tar --force-local -xf "${cli_tarball}" -C extract arcane-cli
   install -m 0755 extract/arcane-cli "${sysextroot}/usr/bin/arcane-cli"
 
+  # qemu-user can run static Go binaries, but skip the runtime check on a
+  # foreign arch anyway so a future dynamically-linked agent cannot abort
+  # the arm64 image the way dust/eza/neovim did. release.sh builds x86-64
+  # first, so the version assertion still runs on the native arch.
+  case "$(uname -m)" in
+    x86_64) [[ "${arch}" == "x86-64" ]] || return 0 ;;
+    aarch64|arm64) [[ "${arch}" == "arm64" ]] || return 0 ;;
+  esac
+
   local installed_version
   installed_version="$("${sysextroot}/usr/bin/arcane-agent" version | awk '/^Arcane version:/ {print $3}')"
   if [[ "${installed_version}" != "${relver}" ]] ; then

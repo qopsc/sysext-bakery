@@ -13,7 +13,7 @@ Instructions for AI agents (Claude, Copilot, Cursor, Aider, etc.) working on thi
 - **Fork hub**: `extensions.quantumops.consulting` — **not yet stood up**, see Known Issues.
 - **Legacy fork** (retired): `darkspadez/sysext-bakery` / `sysext.darkspadez.me` — kept only until nodes deployed from it are re-provisioned.
 
-The fork's divergence from `flatcar/main` is **sixteen permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
+The fork's divergence from `flatcar/main` is **eighteen permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
 
 | # | Patch | File(s) | Kind |
 |---|-------|---------|------|
@@ -33,6 +33,8 @@ The fork's divergence from `flatcar/main` is **sixteen permanent patches** plus 
 | 14 | dust extension | `dust.sysext/**`, `docs/dust.md`, `docs/index.md` dust row, `release_build_versions.txt` dust lines | policy |
 | 15 | iperf3 extension | `iperf3.sysext/**`, `docs/iperf3.md`, `docs/index.md` iperf3 row, `release_build_versions.txt` iperf3 lines | policy |
 | 16 | neovim extension | `neovim.sysext/**`, `docs/neovim.md`, `docs/index.md` neovim row, `release_build_versions.txt` neovim lines | policy |
+| 17 | eza extension | `eza.sysext/**`, `docs/eza.md`, `docs/index.md` eza row, `release_build_versions.txt` eza lines | policy |
+| 18 | Rebuild published releases | `.github/workflows/rebuild.yaml`, `rebuild_dispatcher.sh` | policy |
 
 Patches marked **upstream bugfix** (2, 7, 8, 12) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
 
@@ -112,7 +114,7 @@ bakery_hub="extensions.quantumops.consulting"
 
 **File**: `release_build_versions.txt` — the `kata-containers latest` entry is commented out.
 
-This fork builds a **subset** of upstream's extensions. Every other line tracks upstream verbatim **except** the two `sqlite` entries (patch 10), the two `arcane` entries (patch 13), the two `dust` entries (patch 14), the two `iperf3` entries (patch 15), and the two `neovim` entries (patch 16), which are fork-added; take upstream's version in any conflict, then re-apply the kata-containers comment, the sqlite lines, the arcane lines, the dust lines, the iperf3 lines, and the neovim lines.
+This fork builds a **subset** of upstream's extensions. Every other line tracks upstream verbatim **except** the two `sqlite` entries (patch 10), the two `arcane` entries (patch 13), the two `dust` entries (patch 14), the two `iperf3` entries (patch 15), the two `neovim` entries (patch 16), and the two `eza` entries (patch 17), which are fork-added; take upstream's version in any conflict, then re-apply the kata-containers comment, the sqlite lines, the arcane lines, the dust lines, the iperf3 lines, the neovim lines, and the eza lines.
 
 **Why kata-containers is excluded**: `kata-containers-4.0.0-x86-64.raw` is **2,455,023,616 bytes (2.286 GiB)**, against GitHub's hard **2 GiB (2,147,483,648 B)** per-asset limit — over by 14.3%. Do not relitigate this with a format change: backing out the measured EROFS penalty from patch 3 puts squashfs at **~2.11–2.19 GiB, still over**. kata 4.0.0 ships ~26% more than 3.32.0 (TDX/SNP/NVIDIA/dragonball kernel, initrd and firmware variants) and will only grow.
 
@@ -190,7 +192,7 @@ A fork-local extension shipping `arcane-agent` and `arcane-cli` from [getarcanea
 **Rules**:
 - Ships exactly two binaries: `arcane-agent` and `arcane-cli`. The upstream `arcane` manager binary is intentionally omitted; run the manager via the published container image or add it only with an explicit scope decision.
 - Verify downloads against `arcane_<version>_checksums.txt` (basename match, like nvidia-runtime patch 12).
-- The build asserts the installed `arcane-agent` version matches the requested one; do not remove that check to make a pinned build pass.
+- The build asserts the installed `arcane-agent` version matches the requested one on the **native** architecture; do not remove that check to make a pinned build pass. Skip the runtime check on a foreign arch (qemu-user has no guest dynamic linker).
 - `docs/index.md` and `docs/arcane.md` link the **qopsc** release tag and `extensions.quantumops.consulting` hub URLs, not flatcar's. There is no flatcar release for this extension.
 - The bundled `arcane-agent.service` sets `PROJECTS_DIRECTORY`, `TEMPLATES_DIRECTORY`, and `DATABASE_URL` for a native (non-container) layout under `/var/lib/arcane-agent`; do not revert these to upstream container `/app` defaults.
 
@@ -203,7 +205,7 @@ A fork-local extension shipping the `dust` binary from [bootandy/dust](https://g
 **Rules**:
 - Ships exactly one binary: `dust` at `/usr/bin/dust`.
 - Upstream releases do not publish checksum files; do not add a checksum step unless upstream starts shipping one.
-- The build asserts the installed version matches the requested one; do not remove that check to make a pinned build pass.
+- The build asserts the installed version matches the requested one on the **native** architecture; do not remove that check to make a pinned build pass. Skip the runtime check on a foreign arch — `dust` is a dynamically-linked gnu binary, and qemu-user on the x86-64 builder has no `/lib/ld-linux-aarch64.so.1`.
 - `docs/index.md` and `docs/dust.md` link the **qopsc** release tag, not flatcar's. There is no flatcar release for this extension.
 
 ### 15. iperf3 extension
@@ -215,6 +217,7 @@ A fork-local extension shipping the `iperf3` binary built from [esnet/iperf](htt
 **Rules**:
 - Ships exactly one binary: `iperf3` at `/usr/bin/iperf3`.
 - Upstream publishes source tarballs, not prebuilt binaries; build inside Alpine with `build.sh` and bundle runtime libraries with `flix.sh`.
+- `flix.sh` must be invoked with `FOLDER=/` after `make install` (not `DESTDIR=/staging`). The musl loader lives in the Alpine root, not in a DESTDIR tree; `FOLDER=/staging` fails with `cp: cannot stat '/staging/lib/ld-musl-*.so.1'`. Same pattern as sqlite.
 - Verify downloads against `iperf-<version>.tar.gz.sha256` (basename match, like nvidia-runtime patch 12).
 - Filter `list_available_versions` to numeric tags only; esnet/iperf publishes beta tags that are not marked GitHub prereleases.
 - The build asserts the installed version matches the requested one; do not remove that check to make a pinned build pass.
@@ -230,7 +233,46 @@ A fork-local extension shipping Neovim from the official Linux release tarballs,
 - Source the official `nvim-linux-{x86_64,arm64}.tar.gz` assets only (v0.11.0+). Do not use AppImage or `flix.sh`.
 - Ship `/usr/bin/nvim` plus `vim` and `vi` symlinks. Runtime files live under `/usr/share/nvim`, parsers under `/usr/lib/nvim`.
 - Verify tarball integrity via the GitHub release asset `digest` field. Assert the glibc symbol-version floor matches btop.
+- The headless smoke test (`vim --headless '+qa'`) runs only on the native architecture. qemu-user on the x86-64 builder has no `/lib/ld-linux-aarch64.so.1`. Do not drop the digest or glibc-floor checks.
 - `docs/index.md` and `docs/neovim.md` link the **qopsc** release tag, not flatcar's.
+
+### 17. eza extension
+
+**Files**: `eza.sysext/` (create.sh), `docs/eza.md`, the `eza` row in `docs/index.md`, and the two `eza` lines in `release_build_versions.txt`.
+
+A fork-local extension shipping the `eza` binary from [eza-community/eza](https://github.com/eza-community/eza) GitHub release assets. It does not exist upstream — in any conflict take upstream's file and re-add the eza parts.
+
+**Rules**:
+- Ships exactly one binary: `eza` at `/usr/bin/eza`.
+- Upstream releases do not publish checksum files; do not add a checksum step unless upstream starts shipping one.
+- The build asserts the installed version matches the requested one on the **native** architecture; do not remove that check to make a pinned build pass. Skip the runtime check on a foreign arch — same qemu-user `/lib/ld-linux-aarch64.so.1` gap as dust.
+- `docs/index.md` and `docs/eza.md` link the **qopsc** release tag, not flatcar's. There is no flatcar release for this extension.
+
+### 18. Rebuild published releases
+
+**Files**: `.github/workflows/rebuild.yaml`, `rebuild_dispatcher.sh`.
+
+The daily `release.yaml` only builds versions that have **no** GitHub release yet (`github_release_exists`). After a bake-script or bundled-unit change, an already-published version (e.g. `arcane-v2.9.0`) would stay stale forever without a way to remake it.
+
+**Rules**:
+- `workflow_dispatch` only. Inputs are `extension` + `version` (or a comma-separated `releases` list of `extension:version`), plus optional `branch` (default `main`).
+- `version` / a list entry may be `latest`; `rebuild_dispatcher.sh` resolves that the same way `release_dispatcher.sh` does.
+- Reject any version that `./bakery.sh list <extension>` does not return, including a resolved `latest`. An unknown version must not reach `gh release delete`.
+- Build both architectures first. Delete the existing GitHub **release** only after the build succeeds, immediately before upload (`gh release delete`). Do **not** pass `--cleanup-tag`; `release.sh` force-updates the git tag to the new build.
+- After the rebuild, refresh that extension's metadata release and the global `SHA256SUMS`.
+- Validate extension names against `*.sysext/` before building. Do not interpolate workflow inputs or `matrix.*` values into bash source — pass them as env vars (`RELEASE_SPEC`, `EXTENSION`).
+
+---
+
+## Rebuilding a published version
+
+The scheduled release workflow only creates versions that are missing from GitHub. To remake an existing version after a patch (for example the arcane-agent unit env defaults):
+
+1. Actions → **Rebuild a published sysext release** → Run workflow.
+2. Set `extension` to `arcane` and `version` to `v2.9.0` (or `releases` to `arcane:v2.9.0,dust:v1.2.5` for a batch).
+3. Leave `branch` as `main` unless you are testing a feature branch.
+
+That rebuilds both architectures, then replaces the existing GitHub release and refreshes metadata. The old release stays published if the build fails.
 
 ---
 
@@ -256,6 +298,8 @@ Expected, and nothing else:
 ```
 .env  .gitignore  AGENTS.md  CLAUDE.md
 .github/workflows/release.yaml
+.github/workflows/rebuild.yaml
+rebuild_dispatcher.sh
 docker.sysext/create.sh
 lib/generate.sh
 release_build_versions.txt
@@ -264,6 +308,7 @@ tools/http-url-rewrite-server/**
 docs/index.md  docs/sqlite.md  sqlite.sysext/**
 docs/arcane.md  arcane.sysext/**
 docs/dust.md  dust.sysext/**
+docs/eza.md  eza.sysext/**
 docs/iperf3.md  iperf3.sysext/**
 docs/btop.md  btop.sysext/**
 docs/neovim.md  neovim.sysext/**
@@ -275,11 +320,12 @@ README.md  docs/netbird.md  netbird.sysext/**
 And sanity-check the scripts:
 
 ```bash
-bash -n docker.sysext/create.sh lib/generate.sh release_meta.sh release_dispatcher.sh nvidia-runtime.sysext/create.sh arcane.sysext/create.sh dust.sysext/create.sh iperf3.sysext/create.sh neovim.sysext/create.sh
+bash -n docker.sysext/create.sh lib/generate.sh release_meta.sh release_dispatcher.sh rebuild_dispatcher.sh nvidia-runtime.sysext/create.sh arcane.sysext/create.sh dust.sysext/create.sh eza.sysext/create.sh iperf3.sysext/create.sh iperf3.sysext/build.sh neovim.sysext/create.sh
 ./bakery.sh list docker | head
 ./bakery.sh list nvidia-runtime | head
 ./bakery.sh list arcane | head
 ./bakery.sh list dust | head
+./bakery.sh list eza | head
 ./bakery.sh list iperf3 | head
 ./bakery.sh list neovim | head
 ```
