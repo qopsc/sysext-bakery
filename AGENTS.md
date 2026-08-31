@@ -13,7 +13,7 @@ Instructions for AI agents (Claude, Copilot, Cursor, Aider, etc.) working on thi
 - **Fork hub**: `extensions.quantumops.consulting` — **not yet stood up**, see Known Issues.
 - **Legacy fork** (retired): `darkspadez/sysext-bakery` / `sysext.darkspadez.me` — kept only until nodes deployed from it are re-provisioned.
 
-The fork's divergence from `flatcar/main` is **twenty-one permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
+The fork's divergence from `flatcar/main` is **twenty-two permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
 
 | # | Patch | File(s) | Kind |
 |---|-------|---------|------|
@@ -38,8 +38,9 @@ The fork's divergence from `flatcar/main` is **twenty-one permanent patches** pl
 | 19 | List-builds listing resilience | `lib/helpers.sh`, `release_dispatcher.sh`, `bird.sysext/create.sh` | upstream bugfix |
 | 20 | tilde documentation | `docs/tilde.md`, `docs/index.md` tilde row | docs |
 | 21 | restic extension | `restic.sysext/**`, `docs/restic.md`, `docs/index.md` restic row, `release_build_versions.txt` restic lines | policy |
+| 22 | Chrony numeric-tag listing | `chrony.sysext/create.sh` | upstream bugfix |
 
-Patches marked **upstream bugfix** (2, 7, 8, 12, 19) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
+Patches marked **upstream bugfix** (2, 7, 8, 12, 19, 22) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
 
 ---
 
@@ -305,6 +306,17 @@ A fork-local extension shipping the `restic` binary from [restic/restic](https:/
 - The Butane sysupdate drop-in in `docs/restic.md` writes comparison files under a root-owned `RuntimeDirectory` (`/run/restic-sysupdate`), not `/tmp`.
 - `docs/index.md` and `docs/restic.md` link the **qopsc** release tag, not flatcar's. There is no flatcar release for this extension.
 
+### 22. Chrony numeric-tag listing
+
+**Files**: `chrony.sysext/create.sh` (`list_available_versions`).
+
+Chrony's GitLab repo tags stable releases as `4.9` but also ships `-pre` tags and a 2007 Mandriva distro tag (`mandriva-1.22`). Upstream filters only `-pre`. Patch 19's `sort -Vr` in `list_gitlab_tags` ranks `mandriva-1.22` above numeric `4.x` tags, so `chrony latest` in run 33349291503 tried to bake that tag and the 2007 source failed to compile.
+
+**Rules**:
+- Filter `list_available_versions` to numeric tags (`^[0-9]+(\.[0-9]+)+$`), same stance as iperf3. Do not restore `grep -v "\-pre"`: that still lets `mandriva-1.22` through, and `sort -Vr` then makes it `latest`.
+- Do not drop the `sort -Vr` in `list_gitlab_tags` to paper over this; the sort is correct once the list is real versions.
+- If upstream ever filters the same way, this patch disappears on rebase.
+
 ---
 
 ## Rebuilding a published version
@@ -348,6 +360,7 @@ lib/generate.sh
 lib/helpers.sh
 release_dispatcher.sh
 bird.sysext/create.sh
+chrony.sysext/create.sh
 release_build_versions.txt
 release_meta.sh
 tools/http-url-rewrite-server/**
@@ -368,7 +381,7 @@ README.md  docs/netbird.md  netbird.sysext/**
 And sanity-check the scripts:
 
 ```bash
-bash -n docker.sysext/create.sh lib/generate.sh lib/helpers.sh release_meta.sh release_dispatcher.sh rebuild_dispatcher.sh nvidia-runtime.sysext/create.sh arcane.sysext/create.sh dust.sysext/create.sh eza.sysext/create.sh iperf3.sysext/create.sh iperf3.sysext/build.sh neovim.sysext/create.sh restic.sysext/create.sh bird.sysext/create.sh
+bash -n docker.sysext/create.sh lib/generate.sh lib/helpers.sh release_meta.sh release_dispatcher.sh rebuild_dispatcher.sh nvidia-runtime.sysext/create.sh arcane.sysext/create.sh dust.sysext/create.sh eza.sysext/create.sh iperf3.sysext/create.sh iperf3.sysext/build.sh neovim.sysext/create.sh restic.sysext/create.sh bird.sysext/create.sh chrony.sysext/create.sh
 ./bakery.sh list docker | head
 ./bakery.sh list nvidia-runtime | head
 ./bakery.sh list arcane | head
@@ -377,6 +390,7 @@ bash -n docker.sysext/create.sh lib/generate.sh lib/helpers.sh release_meta.sh r
 ./bakery.sh list iperf3 | head
 ./bakery.sh list neovim | head
 ./bakery.sh list restic | head
+./bakery.sh list chrony | head
 ```
 
 ---

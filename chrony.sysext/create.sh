@@ -16,8 +16,11 @@ RELOAD_SERVICES_ON_MERGE="true"
 # Fetch and print a list of available stable versions.
 # Called by 'bakery.sh list <sysext>.
 function list_available_versions() {
+  # Keep numeric tags only. Chrony also publishes -pre tags and a historic
+  # mandriva-1.22 distro tag; sort -Vr ranks that tag above 4.x, so
+  # `chrony latest` would try to bake 2007-era source.
   list_gitlab_tags "gitlab.com" "39973492" \
-    | grep -v "\-pre"
+    | grep -E '^[0-9]+(\.[0-9]+)+$'
 }
 
 # Download the application shipped with the sysext and populate the sysext root directory.
