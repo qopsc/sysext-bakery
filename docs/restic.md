@@ -58,10 +58,11 @@ systemd:
         - name: restic.conf
           contents: |
             [Service]
-            ExecStartPre=/usr/bin/sh -c "readlink --canonicalize /etc/extensions/restic.raw > /tmp/restic"
+            RuntimeDirectory=restic-sysupdate
+            ExecStartPre=/usr/bin/sh -c "readlink --canonicalize /etc/extensions/restic.raw > /run/restic-sysupdate/old"
             ExecStartPre=/usr/lib/systemd/systemd-sysupdate -C restic update
-            ExecStartPost=/usr/bin/sh -c "readlink --canonicalize /etc/extensions/restic.raw > /tmp/restic-new"
-            ExecStartPost=/usr/bin/sh -c "if ! cmp --silent /tmp/restic /tmp/restic-new; then systemd-sysext refresh; fi"
+            ExecStartPost=/usr/bin/sh -c "readlink --canonicalize /etc/extensions/restic.raw > /run/restic-sysupdate/new"
+            ExecStartPost=/usr/bin/sh -c "if ! cmp --silent /run/restic-sysupdate/old /run/restic-sysupdate/new; then systemd-sysext refresh; fi"
 ```
 
 ## Building locally

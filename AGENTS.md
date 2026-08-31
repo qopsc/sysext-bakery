@@ -293,14 +293,16 @@ adds them so `report_missing_extension_docs.sh` stays clean.
 
 ### 21. restic extension
 
-**Files**: `restic.sysext/` (create.sh), `docs/restic.md`, the `restic` row in `docs/index.md`, and the two `restic` lines in `release_build_versions.txt`.
+**Files**: `restic.sysext/` (create.sh, gpg-key-alex.asc), `docs/restic.md`, the `restic` row in `docs/index.md`, and the two `restic` lines in `release_build_versions.txt`.
 
 A fork-local extension shipping the `restic` binary from [restic/restic](https://github.com/restic/restic) GitHub release assets. It does not exist upstream — in any conflict take upstream's file and re-add the restic parts.
 
 **Rules**:
 - Ships exactly one binary: `restic` at `/usr/bin/restic`.
-- Source `restic_<version>_linux_{amd64,arm64}.bz2` and verify against the release `SHA256SUMS` (basename match, like nvidia-runtime patch 12). Do not add man pages, shell completions, or a backup timer.
+- Source `restic_<version>_linux_{amd64,arm64}.bz2`. Authenticate the release `SHA256SUMS` with `SHA256SUMS.asc` and the pinned Alexander Neumann key in `restic.sysext/gpg-key-alex.asc` (fingerprint `CF8F18F2844575973F79D4E191A6868BD3F7A907`) before `sha256sum`. Do not skip GPG verification or fetch the key at bake time.
+- Do not add man pages, shell completions, or a backup timer.
 - The build asserts the installed version matches the requested one on the **native** architecture; do not remove that check to make a pinned build pass. Skip the runtime check on a foreign arch — same qemu-user `/lib/ld-linux-aarch64.so.1` stance as dust/eza.
+- The Butane sysupdate drop-in in `docs/restic.md` writes comparison files under a root-owned `RuntimeDirectory` (`/run/restic-sysupdate`), not `/tmp`.
 - `docs/index.md` and `docs/restic.md` link the **qopsc** release tag, not flatcar's. There is no flatcar release for this extension.
 
 ---
