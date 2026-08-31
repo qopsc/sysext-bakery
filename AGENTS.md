@@ -13,7 +13,7 @@ Instructions for AI agents (Claude, Copilot, Cursor, Aider, etc.) working on thi
 - **Fork hub**: `extensions.quantumops.consulting` — **not yet stood up**, see Known Issues.
 - **Legacy fork** (retired): `darkspadez/sysext-bakery` / `sysext.darkspadez.me` — kept only until nodes deployed from it are re-provisioned.
 
-The fork's divergence from `flatcar/main` is **nineteen permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
+The fork's divergence from `flatcar/main` is **twenty permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
 
 | # | Patch | File(s) | Kind |
 |---|-------|---------|------|
@@ -36,6 +36,7 @@ The fork's divergence from `flatcar/main` is **nineteen permanent patches** plus
 | 17 | eza extension | `eza.sysext/**`, `docs/eza.md`, `docs/index.md` eza row, `release_build_versions.txt` eza lines | policy |
 | 18 | Rebuild published releases | `.github/workflows/rebuild.yaml`, `rebuild_dispatcher.sh` | policy |
 | 19 | List-builds listing resilience | `lib/helpers.sh`, `release_dispatcher.sh`, `bird.sysext/create.sh` | upstream bugfix |
+| 20 | tilde documentation | `docs/tilde.md`, `docs/index.md` tilde row | docs |
 
 Patches marked **upstream bugfix** (2, 7, 8, 12, 19) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
 
@@ -277,6 +278,18 @@ The daily `release.yaml` only builds versions that have **no** GitHub release ye
 - `list_gitlab_tags` takes an optional third argument: a git clone URL. On API failure it falls back to `git ls-remote --tags --refs`. Check `jq` and `git ls-remote` before treating their output as a successful listing. Bird must keep passing `https://gitlab.nic.cz/labs/bird.git`.
 - `release_dispatcher.sh` must capture `./bakery.sh list … --latest true` so a failed listing prints `ERROR listing upstream versions; skipping` instead of dropping the line. Do not fail the whole dispatcher for one extension (same continue-on-error stance as patch 8).
 
+### 20. tilde documentation
+
+**Files**: `docs/tilde.md`, the `tilde` row in `docs/index.md`.
+
+Upstream ships `tilde.sysext/` and builds it, but has no docs page or index row. This fork
+adds them so `report_missing_extension_docs.sh` stays clean.
+
+**Rules**:
+- `docs/index.md` and `docs/tilde.md` link the **qopsc** release tag, not flatcar's.
+- Do not add a fork-local `tilde.sysext/` rewrite; the bake script tracks upstream.
+- In any conflict take upstream's `docs/index.md` and re-add the tilde row.
+
 ---
 
 ## Rebuilding a published version
@@ -330,6 +343,7 @@ docs/eza.md  eza.sysext/**
 docs/iperf3.md  iperf3.sysext/**
 docs/btop.md  btop.sysext/**
 docs/neovim.md  neovim.sysext/**
+docs/tilde.md
 nvidia-runtime.sysext/**
 # plus, while the netbird divergence lasts:
 README.md  docs/netbird.md  netbird.sysext/**
