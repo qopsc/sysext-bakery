@@ -98,6 +98,9 @@ ollama latest
 rke2 v1.32.2+rke2r1
 rke2 latest
 
+restic v0.19.1
+restic latest
+
 scx v1.1.1
 scx latest
 

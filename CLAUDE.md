@@ -5,7 +5,7 @@ This repository is the **qopsc fork** of `flatcar/sysext-bakery`. Read `AGENTS.m
 ## Quick facts
 
 - Remotes: `origin` = `qopsc/sysext-bakery` (this fork), `flatcar` = upstream.
-- Divergence from `flatcar/main` is **twenty permanent patches**, plus temporary divergences listed in AGENTS.md (currently: the netbird extension, pending flatcar/sysext-bakery#243). Anything else is drift.
+- Divergence from `flatcar/main` is **twenty-one permanent patches**, plus temporary divergences listed in AGENTS.md (currently: the netbird extension, pending flatcar/sysext-bakery#243). Anything else is drift.
 
   | # | Patch | File(s) |
   |---|-------|---------|
@@ -29,12 +29,13 @@ This repository is the **qopsc fork** of `flatcar/sysext-bakery`. Read `AGENTS.m
   | 18 | Rebuild published releases | `.github/workflows/rebuild.yaml`, `rebuild_dispatcher.sh` |
   | 19 | List-builds listing resilience | `lib/helpers.sh`, `release_dispatcher.sh`, `bird.sysext/create.sh` |
   | 20 | tilde documentation | `docs/tilde.md`, `docs/index.md` tilde row |
+  | 21 | restic extension | `restic.sysext/**`, `docs/restic.md`, `docs/index.md`, `release_build_versions.txt` restic lines |
 
 - Patches 1 and 2 are in the same function — they rebase as **one conflict**, resolve together.
 - Patches 2, 7, 8, 12 and 19 fix bugs that also exist upstream; they are carried fork-locally by choice and should disappear if upstream ever fixes them.
 - `.env` values (`bakery`, `bakery_hub`) are load-bearing: `bakery_hub` is baked into sysupdate configs shipped inside released images. Do not change without a node-migration plan.
-- `release_build_versions.txt` tracks upstream **except** the commented-out `kata-containers` line (patch 6): its x86-64 image is 2.286 GiB against GitHub's hard 2 GiB asset limit, and squashfs does not fix it. The fork-added `sqlite` lines (patch 10), `arcane` lines (patch 13), `dust` lines (patch 14), `iperf3` lines (patch 15), `neovim` lines (patch 16), and `eza` lines (patch 17) are the other exceptions.
-- Every other file tracks upstream verbatim — in conflicts, upstream wins outside the twenty patches.
+- `release_build_versions.txt` tracks upstream **except** the commented-out `kata-containers` line (patch 6): its x86-64 image is 2.286 GiB against GitHub's hard 2 GiB asset limit, and squashfs does not fix it. The fork-added `sqlite` lines (patch 10), `arcane` lines (patch 13), `dust` lines (patch 14), `iperf3` lines (patch 15), `neovim` lines (patch 16), `eza` lines (patch 17), and `restic` lines (patch 21) are the other exceptions.
+- Every other file tracks upstream verbatim — in conflicts, upstream wins outside the twenty-one patches.
 
 ## Known issue
 

@@ -13,7 +13,7 @@ Instructions for AI agents (Claude, Copilot, Cursor, Aider, etc.) working on thi
 - **Fork hub**: `extensions.quantumops.consulting` — **not yet stood up**, see Known Issues.
 - **Legacy fork** (retired): `darkspadez/sysext-bakery` / `sysext.darkspadez.me` — kept only until nodes deployed from it are re-provisioned.
 
-The fork's divergence from `flatcar/main` is **twenty permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
+The fork's divergence from `flatcar/main` is **twenty-one permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
 
 | # | Patch | File(s) | Kind |
 |---|-------|---------|------|
@@ -37,6 +37,7 @@ The fork's divergence from `flatcar/main` is **twenty permanent patches** plus a
 | 18 | Rebuild published releases | `.github/workflows/rebuild.yaml`, `rebuild_dispatcher.sh` | policy |
 | 19 | List-builds listing resilience | `lib/helpers.sh`, `release_dispatcher.sh`, `bird.sysext/create.sh` | upstream bugfix |
 | 20 | tilde documentation | `docs/tilde.md`, `docs/index.md` tilde row | docs |
+| 21 | restic extension | `restic.sysext/**`, `docs/restic.md`, `docs/index.md` restic row, `release_build_versions.txt` restic lines | policy |
 
 Patches marked **upstream bugfix** (2, 7, 8, 12, 19) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
 
@@ -116,7 +117,7 @@ bakery_hub="extensions.quantumops.consulting"
 
 **File**: `release_build_versions.txt` — the `kata-containers latest` entry is commented out.
 
-This fork builds a **subset** of upstream's extensions. Every other line tracks upstream verbatim **except** the two `sqlite` entries (patch 10), the two `arcane` entries (patch 13), the two `dust` entries (patch 14), the two `iperf3` entries (patch 15), the two `neovim` entries (patch 16), and the two `eza` entries (patch 17), which are fork-added; take upstream's version in any conflict, then re-apply the kata-containers comment, the sqlite lines, the arcane lines, the dust lines, the iperf3 lines, the neovim lines, and the eza lines.
+This fork builds a **subset** of upstream's extensions. Every other line tracks upstream verbatim **except** the two `sqlite` entries (patch 10), the two `arcane` entries (patch 13), the two `dust` entries (patch 14), the two `iperf3` entries (patch 15), the two `neovim` entries (patch 16), the two `eza` entries (patch 17), and the two `restic` entries (patch 21), which are fork-added; take upstream's version in any conflict, then re-apply the kata-containers comment, the sqlite lines, the arcane lines, the dust lines, the iperf3 lines, the neovim lines, the eza lines, and the restic lines.
 
 **Why kata-containers is excluded**: `kata-containers-4.0.0-x86-64.raw` is **2,455,023,616 bytes (2.286 GiB)**, against GitHub's hard **2 GiB (2,147,483,648 B)** per-asset limit — over by 14.3%. Do not relitigate this with a format change: backing out the measured EROFS penalty from patch 3 puts squashfs at **~2.11–2.19 GiB, still over**. kata 4.0.0 ships ~26% more than 3.32.0 (TDX/SNP/NVIDIA/dragonball kernel, initrd and firmware variants) and will only grow.
 
@@ -290,6 +291,18 @@ adds them so `report_missing_extension_docs.sh` stays clean.
 - Do not add a fork-local `tilde.sysext/` rewrite; the bake script tracks upstream.
 - In any conflict take upstream's `docs/index.md` and re-add the tilde row.
 
+### 21. restic extension
+
+**Files**: `restic.sysext/` (create.sh), `docs/restic.md`, the `restic` row in `docs/index.md`, and the two `restic` lines in `release_build_versions.txt`.
+
+A fork-local extension shipping the `restic` binary from [restic/restic](https://github.com/restic/restic) GitHub release assets. It does not exist upstream — in any conflict take upstream's file and re-add the restic parts.
+
+**Rules**:
+- Ships exactly one binary: `restic` at `/usr/bin/restic`.
+- Source `restic_<version>_linux_{amd64,arm64}.bz2` and verify against the release `SHA256SUMS` (basename match, like nvidia-runtime patch 12). Do not add man pages, shell completions, or a backup timer.
+- The build asserts the installed version matches the requested one on the **native** architecture; do not remove that check to make a pinned build pass. Skip the runtime check on a foreign arch — same qemu-user `/lib/ld-linux-aarch64.so.1` stance as dust/eza.
+- `docs/index.md` and `docs/restic.md` link the **qopsc** release tag, not flatcar's. There is no flatcar release for this extension.
+
 ---
 
 ## Rebuilding a published version
@@ -343,6 +356,7 @@ docs/eza.md  eza.sysext/**
 docs/iperf3.md  iperf3.sysext/**
 docs/btop.md  btop.sysext/**
 docs/neovim.md  neovim.sysext/**
+docs/restic.md  restic.sysext/**
 docs/tilde.md
 nvidia-runtime.sysext/**
 # plus, while the netbird divergence lasts:
@@ -352,7 +366,7 @@ README.md  docs/netbird.md  netbird.sysext/**
 And sanity-check the scripts:
 
 ```bash
-bash -n docker.sysext/create.sh lib/generate.sh lib/helpers.sh release_meta.sh release_dispatcher.sh rebuild_dispatcher.sh nvidia-runtime.sysext/create.sh arcane.sysext/create.sh dust.sysext/create.sh eza.sysext/create.sh iperf3.sysext/create.sh iperf3.sysext/build.sh neovim.sysext/create.sh bird.sysext/create.sh
+bash -n docker.sysext/create.sh lib/generate.sh lib/helpers.sh release_meta.sh release_dispatcher.sh rebuild_dispatcher.sh nvidia-runtime.sysext/create.sh arcane.sysext/create.sh dust.sysext/create.sh eza.sysext/create.sh iperf3.sysext/create.sh iperf3.sysext/build.sh neovim.sysext/create.sh restic.sysext/create.sh bird.sysext/create.sh
 ./bakery.sh list docker | head
 ./bakery.sh list nvidia-runtime | head
 ./bakery.sh list arcane | head
@@ -360,6 +374,7 @@ bash -n docker.sysext/create.sh lib/generate.sh lib/helpers.sh release_meta.sh r
 ./bakery.sh list eza | head
 ./bakery.sh list iperf3 | head
 ./bakery.sh list neovim | head
+./bakery.sh list restic | head
 ```
 
 ---
