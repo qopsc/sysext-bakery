@@ -1,8 +1,9 @@
 # Namespace migration — spike findings and plan (fork patch #23, proposed)
 
-Status: **SPIKE (docs-complete, live-run blocked)** — decisions grilled and locked
-2026-10-16; live runner verification pending one external unblock (below).
+Status: **SPIKE COMPLETE** — decisions grilled and locked 2026-10-16; live
+probe green on both arches (runs 38888125159, 38888336108, 38888465328).
 Throwaway probe: branch `spike/namespace-runner-test`, PR #22 (do not merge).
+Ready for Phase 1 (pilot) on approval.
 
 ## Locked decisions (from grilling)
 
@@ -20,7 +21,7 @@ Throwaway probe: branch `spike/namespace-runner-test`, PR #22 (do not merge).
    `release.yaml` depends on any of this.
 9. Registered as permanent fork patch #23 (AGENTS.md/CLAUDE.md, docs, hub) in one change.
 
-## BLOCKER — GitHub Actions is disabled for this repository
+## RESOLVED BLOCKER — GitHub Actions was disabled for this repository
 
 Every trigger type was tested on 2026-10-16 (push, PR, dispatch, trivial
 `ubuntu-24.04` echo workflow): **no run is ever created**, and dispatch returns
@@ -35,9 +36,10 @@ Actions page — the REST API cannot clear it (PUT permissions/enable all
 succeed and change nothing).
 
 Namespace runners are a *runner backend for GitHub Actions* — with Actions off,
-no Namespace job can ever start. **Nothing else in this plan can be live-tested
-until Actions is re-enabled.** Scheduled runs last succeeded 2026-10-14; if the
-disable was intentional, it was premature by one whole migration.
+no Namespace job can ever start. Re-enabled by a maintainer 2026-10-16;
+verified by a successful `report-missing-extension-docs` dispatch and the
+green probe runs. Note the daily/weekly schedules were collateral of this
+flag from ~Oct 14 until re-enablement.
 
 ## Spike findings (Namespace docs, 2026-10-16)
 
@@ -121,19 +123,46 @@ cache-volumes, federation/github-actions, billing-and-limits, pricing page.
   (`nscloud-cache-allow-commit-from-main`) should be set so PR/spike branches
   cannot poison main's cache.
 
-### Not documented / must be answered live or by Namespace support
+### Live-probe answers (runs 38888125159 / 38888336108, 2026-10-16)
 
-1. Exact `runs-on` string for the two dashboard profiles (see above).
-2. Runner root disk size on `4c-8g` (undocumented; our largest bakes need
-   source + image + EROFS in one workspace — the probe workflow measures it).
-3. Single-artifact size limit (must clear our largest `.raw`; kata is already
-   excluded at 2.29 GiB, but ollama/coder/docker sizes need headroom proof).
-4. Pre-signed URL support for HTTP Range and redirect-following clients
-   (systemd-sysupdate resume behaviour).
-5. CLI re-upload/versioning semantics for an existing artifact path (rebuilds).
-6. Artifact read (egress) unit price on the workspace's plan.
-7. Whether `nsc` is preinstalled on Namespace runners (probe checks; fallback
-   is `nscloud-setup`).
+1. **`runs-on` confirmed**: `namespace-profile-linux-{amd64,arm64}-4c-8g-u24`
+   schedule instantly; jobs complete in seconds (probe: ~5 s/job).
+2. **Disk**: root overlay 63 GiB total / **55 GiB free**; a separate 100 GiB
+   cache volume is mounted (`/cache`, `/gitmirror`, hosted tool/action
+   caches). Largest bakes must fit source+image in ~55 GiB — plausible, but
+   docker/ollama/coder are Phase 1/2 watch items.
+3. **Shape truth**: 4 vCPU, **7.8 GiB RAM + 8 GiB swap** (GitHub was 16 GiB,
+   no guaranteed swap). Caches were already enabled on both profiles
+   (container, git-mirror, runner-tools, Actions cache, 100 GiB bundled).
+4. **Docker works natively**: Docker 29.3.0 with a live daemon
+   (`29.3.0-namespace`, overlayfs) on both arches — `lib/helpers.sh`
+   `docker run` bakes need no buildx/qemu rework. No podman (unused by CI).
+   `mkfs.erofs`/`mksquashfs` are NOT preinstalled; the existing
+   `apt install` prerequisite step stays.
+5. **`nsc` preinstalled** (`/nsc/bin/nsc` v0.0.576), workspace-authenticated
+   with zero secrets. Full lifecycle verified: path upload
+   (`spike/run-<id>/hello.txt`), `describe -o json` (note: status is
+   `LIVE`, not the docs' `AVAILABLE`), download, expire, and
+   `cache-url` (second call served from cache populated by a *different*
+   run — cross-run sharing works).
+6. **Re-upload to an existing path succeeds** (new version wins silently) —
+   rebuild-overwrite semantics are free.
+7. **Anonymous access disproved**: the `describe` `web_url`
+   (`cloud.namespace.so/<ws>/artifacts/download/...`) returns the dashboard
+   HTML login shell to unauthenticated clients. Nodes can never fetch
+   artifacts directly; hub minting-proxy (above) is the only design.
+8. Publish-join pattern verified end-to-end:
+   `namespace-actions/upload-artifact@v1` per arch →
+   `download-artifact@v2` (pattern+merge) → joined SHA256SUMS.
+
+### Still open (Phase 1 / Namespace support)
+
+1. Single-artifact size limit (must clear our largest `.raw`; kata excluded
+   at 2.29 GiB, ollama/coder/docker need headroom proof — test by uploading
+   the largest existing `.raw` early in Phase 1).
+2. Pre-signed URL Range/redirect behaviour with a real systemd-sysupdate
+   client (hub prototype, Phase 1 gate).
+3. Artifact read (egress) unit price on the workspace's plan.
 
 ## Repo touchpoint inventory (what patch #23 must change)
 
