@@ -24,10 +24,15 @@ Throwaway probe: branch `spike/namespace-runner-test`, PR #22 (do not merge).
 
 Every trigger type was tested on 2026-10-16 (push, PR, dispatch, trivial
 `ubuntu-24.04` echo workflow): **no run is ever created**, and dispatch returns
-`HTTP 422: Actions has been disabled for this repository`. Repo-level API
-permissions report `enabled: true, allowed_actions: all`, so the disable is at
-org/fork-enablement level, changeable only with `admin:org` scope or in the UI
-(qopsc → Settings → Actions, or the repo Actions-tab enablement banner).
+`HTTP 422: Actions has been disabled for this repository`. Repo- and org-level
+API permissions both report enabled/all-allowed (token has `admin:org`), yet
+the public Actions page states the real cause verbatim: *"Workflows are not
+currently being run on this fork due to the scale of GitHub Actions usage. A
+repository maintainer can choose to re-enable these."* GitHub auto-disabled
+this fork's workflows (~2026-10-14, when scheduled runs stop); the flag is
+only clearable by a signed-in maintainer clicking re-enable on the repo
+Actions page — the REST API cannot clear it (PUT permissions/enable all
+succeed and change nothing).
 
 Namespace runners are a *runner backend for GitHub Actions* — with Actions off,
 no Namespace job can ever start. **Nothing else in this plan can be live-tested
