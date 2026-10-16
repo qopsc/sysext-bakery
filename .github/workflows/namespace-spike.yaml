@@ -4,6 +4,9 @@ name: Namespace spike (throwaway)
 # Manual dispatch only. Do not merge to main as-is.
 on:
   workflow_dispatch:
+  push:
+    branches: [spike/namespace-runner-test]
+    paths: ['.github/workflows/namespace-spike.yaml']
 
 permissions:
   contents: read
