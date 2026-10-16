@@ -1,0 +1,110 @@
+name: Namespace spike (throwaway)
+
+# Throwaway spike for the Namespace migration design (patch #23 investigation).
+# Manual dispatch only. Do not merge to main as-is.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe-amd64:
+    runs-on: namespace-profile-linux-amd64-4c-8g-u24
+    outputs:
+      arch: ${{ steps.probe.outputs.arch }}
+    steps:
+      - name: Probe environment
+        id: probe
+        run: |
+          set -ux
+          uname -a
+          uname -m
+          nproc
+          free -h || true
+          df -h / /tmp . 2>/dev/null || df -h
+          lsblk 2>/dev/null || true
+          docker --version || echo "no docker CLI"
+          docker info --format '{{.ServerVersion}} {{.Driver}}' || echo "no docker daemon"
+          podman --version || echo "no podman"
+          which nsc && nsc version || echo "no nsc CLI"
+          which erofs-utils mkfs.erofs mksquashfs xz || true
+          echo "arch=$(uname -m)" >> "$GITHUB_OUTPUT"
+
+      - name: Stage a test payload
+        run: |
+          mkdir -p payload
+          head -c 1048576 /dev/urandom > payload/spike-amd64.bin
+          sha256sum payload/spike-amd64.bin | tee payload/SHA256SUMS.partial
+
+      - name: Upload staging artifact (Namespace)
+        uses: namespace-actions/upload-artifact@v1
+        with:
+          name: spike-amd64
+          path: payload/
+          compression-level: 0
+          retention-days: 1
+
+  probe-arm64:
+    runs-on: namespace-profile-linux-arm64-4c-8g-u24
+    steps:
+      - name: Probe environment
+        run: |
+          set -ux
+          uname -a
+          uname -m
+          nproc
+          free -h || true
+          df -h / /tmp . 2>/dev/null || df -h
+          docker --version || echo "no docker CLI"
+          docker info --format '{{.ServerVersion}} {{.Driver}}' || echo "no docker daemon"
+          podman --version || echo "no podman"
+          which nsc && nsc version || echo "no nsc CLI"
+
+      - name: Stage a test payload
+        run: |
+          mkdir -p payload
+          head -c 1048576 /dev/urandom > payload/spike-arm64.bin
+          sha256sum payload/spike-arm64.bin | tee payload/SHA256SUMS.partial
+
+      - name: Upload staging artifact (Namespace)
+        uses: namespace-actions/upload-artifact@v1
+        with:
+          name: spike-arm64
+          path: payload/
+          compression-level: 0
+          retention-days: 1
+
+  publish-join:
+    needs: [probe-amd64, probe-arm64]
+    runs-on: namespace-profile-linux-amd64-4c-8g-u24
+    steps:
+      - name: Download both arch staging artifacts
+        uses: namespace-actions/download-artifact@v2
+        with:
+          pattern: spike-*
+          path: staging
+          merge-multiple: false
+
+      - name: Join and exercise nsc artifact store
+        run: |
+          set -eux
+          find staging -type f | sort
+          cat staging/*/SHA256SUMS.partial > SHA256SUMS.joined
+          cat SHA256SUMS.joined
+
+          if which nsc; then
+            dest="spike/run-${GITHUB_RUN_ID}/hello.txt"
+            echo "namespace spike ${GITHUB_RUN_ID}" > hello.txt
+            nsc artifact upload hello.txt "${dest}"
+            nsc artifact describe "${dest}" -o json || nsc artifact describe "${dest}"
+            nsc artifact cache-url https://namespace.so/robots.txt --out robots.txt \
+              && head -c 200 robots.txt || echo "cache-url failed"
+            rm -f hello-dl.txt
+            nsc artifact download "${dest}" hello-dl.txt
+            cat hello-dl.txt
+            nsc artifact expire "${dest}"
+            echo "nsc artifact lifecycle OK"
+          else
+            echo "nsc CLI absent on runner; distribution-tier upload needs nscloud-setup or equivalent"
+          fi
