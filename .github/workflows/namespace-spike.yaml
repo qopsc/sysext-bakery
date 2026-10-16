@@ -109,6 +109,22 @@ jobs:
             cat hello-dl.txt
             nsc artifact expire "${dest}"
             echo "nsc artifact lifecycle OK"
+
+            # Re-upload semantics: same path twice (rebuilds overwrite).
+            echo "v1" > reup.txt
+            nsc artifact upload reup.txt spike/reupload-test.txt
+            echo "v2" > reup.txt
+            if nsc artifact upload reup.txt spike/reupload-test.txt; then
+              echo "REUPLOAD: second upload to same path SUCCEEDED"
+            else
+              echo "REUPLOAD: second upload to same path FAILED"
+            fi
+            nsc artifact download spike/reupload-test.txt reup-dl.txt && cat reup-dl.txt
+
+            # Left unexpired on purpose: anonymous-access test from outside.
+            echo "anonymous access test ${GITHUB_RUN_ID}" > anon.txt
+            nsc artifact upload anon.txt spike/anon-test.txt
+            nsc artifact describe spike/anon-test.txt -o json
           else
             echo "nsc CLI absent on runner; distribution-tier upload needs nscloud-setup or equivalent"
           fi
