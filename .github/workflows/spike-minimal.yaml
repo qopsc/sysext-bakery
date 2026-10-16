@@ -1,9 +1,0 @@
-name: Spike minimal
-on:
-  push:
-    branches: [spike/namespace-runner-test]
-jobs:
-  hello:
-    runs-on: ubuntu-24.04
-    steps:
-      - run: echo hello-from-spike-branch
