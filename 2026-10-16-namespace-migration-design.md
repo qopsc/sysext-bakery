@@ -239,6 +239,22 @@ cache-volumes, federation/github-actions, billing-and-limits, pricing page.
 - Back-catalogue: 321 GH releases, **110.8 GiB** of assets → artifact storage
   ≈ $22/mo at $0.20/GB-month, plus metered reads per node download (price
   TBD per plan). New-build growth is additional.
+- The 2000/2000 error was the org's **GitHub Free plan included minutes**
+  (2,000/mo, consumed by *private* repos; qopsc plan = `free`). Public-repo
+  minutes are fully discounted (net $0) but private repos (confetti,
+  oarlock, interchange) drew ~594 min in Oct alone. With a
+  `prevent_further_usage` budget, exhaustion blocks workflow execution —
+  the failure that motivated this migration. Namespace-runner jobs bill
+  **zero** GitHub minutes (self-hosted class), so after this migration
+  sysext-bakery consumes no GitHub minutes, artifacts storage, or Packages
+  storage at all. It never used GHCR: bake images come from docker.io/
+  quay.io and, on Namespace, are served by the profile's container cache
+  (nscr.io). Remaining GitHub contact is unmetered: orchestration/logs,
+  git clones (code stays), the issues API in the docs workflow, and
+  GitHub Pages (docs site / hub fallback redirect). Org-level risk stays
+  until the private repos also move or the org leaves the Free plan:
+  their GH-hosted jobs keep eating the same 2,000-min pool, and org
+  Actions cache already totals 14.8 GiB (oarlock 11.8 GiB).
 - Namespace-side TODO (dashboard, cannot be done via this repo): confirm
   plan tier + payment method; check Linux concurrency cap for the chosen
   plan (Developer 32 vCPU = 8 concurrent 4c-8g jobs — release matrices will
