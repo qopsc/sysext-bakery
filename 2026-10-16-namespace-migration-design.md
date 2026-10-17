@@ -200,10 +200,21 @@ cache-volumes, federation/github-actions, billing-and-limits, pricing page.
   per-extension and global metadata releases updated. `release.sh`
   gained `--arch`/`--join` modes; the legacy no-arg path is untouched,
   so `release.yaml` keeps working until Phase 2.
-- **Phase 2 — all workflows.** `release.yaml` gets the same split/join;
-  `update-all-metadata` + `report-missing-extension-docs` get label swaps.
-  Watch docker/ollama/coder for the 55 GiB disk / 7.8 GiB RAM ceiling;
-  upsize per extension only on evidence.
+- **Phase 2 — all workflows. ✅ DONE** (branch `namespace/pilot-rebuild`).
+  `release.yaml` split/join ran the real backlog (run 39071604340):
+  9 releases × 2 arches, **18/18 build legs, 9/9 publishes, 10/10
+  metadata jobs green, zero drafts**. docker 29.9.1 legs: 0.3/0.6 min;
+  ollama 3.5/6.3 min; slowest leg scx arm64 at 38.9 min (x86-64 11.8) —
+  native arm compilation, no OOM/disk failure anywhere, so no per-
+  extension upsizes. docker `.raw` sha256-verified post-download.
+  `update-all-metadata` (run 39074968695, 45 jobs) and
+  `report-missing-extension-docs` (run 39074970633) green on Namespace
+  labels. Known cosmetic regression: publish legs wait for the whole
+  build matrix, so the slowest leg (scx) delays every release in the
+  run (old flow published per-release as each finished). Metadata jobs
+  waited for the whole matrix before too; if time-to-first-release ever
+  matters, restructure as a reusable per-release workflow — not needed
+  for a daily cadence.
 - **Phase 3 — caching.** Profile cache options already on; optional
   `namespacelabs/nscloud-checkout-action` swap; `cache-url` retrofits only
   where build logs prove download pain (pinned URLs only); cache-commit
