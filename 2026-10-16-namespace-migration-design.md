@@ -221,6 +221,32 @@ cache-volumes, federation/github-actions, billing-and-limits, pricing page.
 - **Phase 5 — bookkeeping.** Patch #23 registered, expected-diff + release
   verification sections rewritten, spike branch/PR deleted.
 
+## Budget check (2026-10-16)
+
+- GitHub org `qopsc` Actions budget: **$5/mo, `prevent_further_usage: true`**
+  (alerts: darkspadez, qopsc-admin). This budget does **not** fund Namespace:
+  Namespace compute is billed by Namespace (unit minutes), never via GitHub.
+- GitHub-side cost today is **net $0**: public repos are fully discounted.
+  sysext-bakery used 1,888 GH Linux minutes in Aug 2026 (gross $11.33, net
+  $0) and 869 in Oct (until the fork auto-disable). The $5 hard stop only
+  bites if the org ever incurs *net* Actions charges (private-repo minutes,
+  paid storage) — then it would disable Actions org-wide mid-migration.
+  Raising it (e.g. $50, alerts on, hard stop off or higher) is safer.
+- Estimated Namespace compute: ~2,000–3,500 runner wall-min/month across all
+  workflows × 4 unit-min (4 vCPU/8 GiB shape) ≈ **10–15k unit minutes/mo**
+  (≈$15–22 pay-as-you-go at $0.0015/unit-min; Team includes 100k for $100).
+  Native arm64 removes QEMU overhead, so this should fall, not rise.
+- Back-catalogue: 321 GH releases, **110.8 GiB** of assets → artifact storage
+  ≈ $22/mo at $0.20/GB-month, plus metered reads per node download (price
+  TBD per plan). New-build growth is additional.
+- Namespace-side TODO (dashboard, cannot be done via this repo): confirm
+  plan tier + payment method; check Linux concurrency cap for the chosen
+  plan (Developer 32 vCPU = 8 concurrent 4c-8g jobs — release matrices will
+  queue; Team 64 / Business 160); set Namespace billing alerts; confirm
+  included artifact storage/reads; (Phase 2) mint the scoped hub token.
+  Profiles, caches (100 GiB bundled), GitHub app install, and arm64 platform
+  are already verified working live.
+
 ## Risks recorded against the locked decisions
 
 - Deletion-on-success (decision 5) before hub fetch is proven can orphan
