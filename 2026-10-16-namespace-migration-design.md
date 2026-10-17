@@ -1,25 +1,35 @@
 # Namespace migration — spike findings and plan (fork patch #23, proposed)
 
-Status: **SPIKE COMPLETE** — decisions grilled and locked 2026-10-16; live
-probe green on both arches (runs 38888125159, 38888336108, 38888465328).
-Throwaway probe: branch `spike/namespace-runner-test`, PR #22 (do not merge).
-Ready for Phase 1 (pilot) on approval.
+Status: **SPIKE COMPLETE, PLAN AMENDED** — spike green on both arches (runs
+38888125159, 38888336108, 38888465328); throwaway probe on branch
+`spike/namespace-runner-test`, PR #22 (do not merge). Decision amended
+2026-10-16 after the quota investigation: **GitHub Releases stay** (see
+decision 3). Ready for Phase 1 (pilot) on approval.
 
-## Locked decisions (from grilling)
+## Locked decisions (from grilling, as amended)
 
 1. All four workflows move to Namespace runners.
 2. Native per-arch builds (amd64 + arm64 jobs), no QEMU; a third publish job joins both.
-3. GitHub keeps the code; **artifacts leave GitHub**. Namespace artifact store is the
-   source of truth (replaces `github_release_exists`, `release_meta.sh` GitHub API use).
-4. Store layout mirrors GitHub Releases 1:1 (`<ext>-<version>/` with both `.raw`,
-   `.conf`, `SHA256SUMS`, build logs; per-extension + global `SHA256SUMS`), no expiry.
-5. GH releases **and their git tags** are deleted on workflow success.
-6. `4c-8g` profiles everywhere (`linux-amd64-4c-8g-u24`, `linux-arm64-4c-8g-u24`);
+3. **Split by meter, not by logo.** Everything GitHub *meters* leaves GitHub:
+   runner minutes, Actions artifacts (intra-run staging via
+   `namespace-actions/*`), and OCI images (`nscr.io`, if/when any) move to
+   Namespace. Everything GitHub gives this public repo *free and unmetered*
+   stays: the code, and **GitHub Releases as the public `.raw` distribution**
+   (free storage/egress, anonymous node downloads, unaffected by Actions
+   disablement). Source of truth stays GitHub Releases:
+   `github_release_exists`, `release_meta.sh`, the hub's Caddy redirects,
+   dispatcher, docs links and `sysupdate.conf.tmpl` are all **unchanged**.
+   *(Supersedes the original decisions 3–5: no Namespace distribution store,
+   no 1:1 mirror, no deletion of releases or git tags — the 2000/2000 quota
+   fire never involved Releases, so moving them bought only risk: hub
+   signed-URL minting, metered fleet egress, a 110 GiB transfer.)*
+4. `4c-8g` profiles everywhere (`linux-amd64-4c-8g-u24`, `linux-arm64-4c-8g-u24`);
    upsize individual extensions only on proven OOM/disk failure.
-7. Full Namespace feature set in scope, staged: runners → artifacts → caching.
-8. Pilot: one small extension (`dust` or `eza`) via `rebuild.yaml` before
+5. Full Namespace feature set in scope, staged: runners → staging artifacts → caching.
+6. Pilot: one small extension (`dust` or `eza`) via `rebuild.yaml` before
    `release.yaml` depends on any of this.
-9. Registered as permanent fork patch #23 (AGENTS.md/CLAUDE.md, docs, hub) in one change.
+7. Registered as permanent fork patch #23 (AGENTS.md/CLAUDE.md) in one change;
+   scope is now mostly workflow files + the `release.sh` arch split.
 
 ## RESOLVED BLOCKER — GitHub Actions was disabled for this repository
 
@@ -63,43 +73,27 @@ cache-volumes, federation/github-actions, billing-and-limits, pricing page.
   arches + joins) will queue against this cap; per-profile concurrency limits
   exist if list/metadata jobs must not starve builds. *Confirm plan tier.*
 
-### Artifact store — the two tiers must not be conflated
+### Artifact store — only the staging tier is used (as amended)
 
-| | Staging (intra-run) | Distribution (replaces GH Releases) |
+| | Staging (intra-run) — **used** | Distribution — **not used** |
 |---|---|---|
 | Tool | `namespace-actions/upload-artifact@v1` / `download-artifact@v2` | `nsc artifact upload/download/describe/expire` |
 | Semantics | GitHub-artifact-compatible, per-run | Path-addressed objects in a workspace namespace (`main`) |
-| Default expiry | **30 days** | **None** |
-| Addressing | name within a run | path, e.g. `docker-v28.0.0/docker-v28.0.0-x86-64.raw` (`describe` example confirms path-style) |
-| Existence check | n/a | `nsc artifact describe <path> -o json` → `Status: AVAILABLE` |
+| Default expiry | **30 days** (set `retention-days: 1` for build staging) | None |
+| Addressing | name within a run | path, e.g. `docker-v28.0.0/docker-v28.0.0-x86-64.raw` |
 
-- `nsc artifact upload` is **single-file** (or `--pack` zip glob). Our layout is
-  per-file uploads — fine, and it makes the 1:1 GH mirror literal.
-- Versioning: re-upload to an existing path fails unless a new version is
-  requested at the API level; CLI behaviour on re-upload of our rebuild path
-  must be confirmed live (rebuild.yaml overwrites published versions by design).
-- **Public access: there is none for artifacts.** Downloads resolve to
-  **pre-signed URLs valid 30 minutes**, workspace/RBAC-scoped. Anonymous
-  `systemd-sysupdate` cannot fetch from Namespace directly. (Contrast: the
-  *container registry* has `nsc registry share` → `public.nscr.io`; artifact
-  storage has no equivalent in the docs.)
-- Therefore the hub design is forced: `extensions.quantumops.consulting` stops
-  302-redirecting to GitHub and becomes an **authenticated minting proxy**:
-  per request it resolves the artifact path (scoped revocable token,
-  `nsc token create --grant '{"resource_type":"artifact","actions":["resolve","list",...]}'`,
-  consumed via `NSC_TOKEN_FILE`) and 302s to a fresh pre-signed URL, or streams
-  the object. Caddy alone cannot call the ResolveArtifact API — this means a
-  small sidecar service next to Caddy in the existing compose deployment, or
-  Caddy calling an API endpoint; to be prototyped on the hub host. Each
-  sysupdate request (SHA256SUMS, each `.raw`) is minted independently, so the
-  30-minute validity is not a problem *if* sysupdate follows 302s (it does for
-  `url-file` transfers; *verify with a real node in the pilot*).
-- Cost inversion vs GitHub: GH release egress is free; Namespace bills
-  **artifact storage GB-month + artifact reads per GB**. Every node update
-  fleet-wide becomes metered egress. Storage pricing seen: $0.20/GB-month
-  (GitHub Artifacts line); read pricing to confirm on the workspace plan.
-  Indefinite 1:1 retention of the whole back-catalogue is a recurring,
-  growing line item, not a one-off.
+- The probe also verified the distribution tier end-to-end (path upload,
+  `describe`, download, expire, silent-overwrite re-upload, `cache-url`),
+  so the shelved full-exit design remains executable if ever wanted.
+- **Why distribution stays on GitHub**: artifacts have **no public access**
+  (pre-signed 30-min URLs, workspace-scoped only; the probe's anonymous
+  fetch returned the dashboard login shell). Moving `.raw` would have
+  forced the hub to become an authenticated URL-minting proxy and made
+  every node download metered Namespace egress — cost and complexity to
+  escape a quota that never applied to Releases. GH Releases stay the
+  origin; the hub keeps 302-redirecting to GitHub exactly as designed in
+  patch 9; no hub token, no sidecar, no back-catalogue transfer (321
+  releases / 110.8 GiB stay put, free).
 
 ### Caching ("full feature set", staged last)
 
@@ -149,20 +143,20 @@ cache-volumes, federation/github-actions, billing-and-limits, pricing page.
    rebuild-overwrite semantics are free.
 7. **Anonymous access disproved**: the `describe` `web_url`
    (`cloud.namespace.so/<ws>/artifacts/download/...`) returns the dashboard
-   HTML login shell to unauthenticated clients. Nodes can never fetch
-   artifacts directly; hub minting-proxy (above) is the only design.
+   HTML login shell to unauthenticated clients. (Key input to the amended
+   decision 3: distribution stays on GitHub Releases.)
 8. Publish-join pattern verified end-to-end:
    `namespace-actions/upload-artifact@v1` per arch →
    `download-artifact@v2` (pattern+merge) → joined SHA256SUMS.
 
-### Still open (Phase 1 / Namespace support)
+### Still open
 
-1. Single-artifact size limit (must clear our largest `.raw`; kata excluded
-   at 2.29 GiB, ollama/coder/docker need headroom proof — test by uploading
-   the largest existing `.raw` early in Phase 1).
-2. Pre-signed URL Range/redirect behaviour with a real systemd-sysupdate
-   client (hub prototype, Phase 1 gate).
-3. Artifact read (egress) unit price on the workspace's plan.
+1. Largest-bake resource fit on 55 GiB disk / 7.8 GiB RAM (docker, ollama,
+   coder) — answered by real builds in Phases 1–2, per-extension upsize is
+   the escape hatch (decision 4).
+2. Whether staging artifacts need `compression-level: 0` tuning for
+   multi-hundred-MB `.raw` files (probe used 1 MiB payloads; the pilot
+   measures real upload/download timings on a real image).
 
 ## Repo touchpoint inventory (what patch #23 must change)
 
@@ -170,56 +164,46 @@ cache-volumes, federation/github-actions, billing-and-limits, pricing page.
   — every `runs-on: ubuntu-24.04` (12 sites) → profile labels; drop
   `docker/setup-qemu-action` from build jobs.
 - `release.sh` — builds both arches in one job today (`for arch in x86-64 arm64`);
-  split to one arch per invocation (matrix), keep tag/SHA256SUMS contract for
-  the publish job to consume.
-- Publish-join job (new, in `release.yaml`/`rebuild.yaml`): download both arch
-  staging artifacts, join `SHA256SUMS`, generate `.conf` set + `Release.md`,
-  `nsc artifact upload` the 1:1 layout, then (per decision 5) delete the GH
-  release + tag if one exists. Replaces all 8 `softprops/action-gh-release`
-  sites.
-- `release_dispatcher.sh` + `lib/helpers.sh` — `github_release_exists` → an
-  `nsc artifact describe`-based `bakery_artifact_exists`; `list-bakery`
-  (GitHub releases listing) → artifact path listing.
-- `release_meta.sh` — rewritten to aggregate `SHA256SUMS`/`.conf` from the
-  artifact store instead of the GitHub API (patch 7's draft/skip resilience
-  semantics carried over: skip missing artifacts, never fail the whole job).
-- `tools/http-url-rewrite-server/` — Caddyfile `redir` rules → minting-proxy
-  design (above); design doc + compose updated (patch 9 amended, not replaced).
-- `docs/*.md` — ~10+ files link `github.com/qopsc/sysext-bakery/releases/...`;
-  repoint to hub URLs. `lib/sysupdate.conf.tmpl` itself is unchanged (it
-  already points at the hub) — **already-deployed nodes keep working iff the
-  hub serves the same paths from Namespace.**
-- `AGENTS.md`/`CLAUDE.md` — patch #23 row, expected-diff list
-  (`.github/workflows/*`, the scripts above, hub, docs), new sanity checks
-  (`nsc artifact describe` spot-check replacing the `gh release view` check).
-- `.env` — unchanged. `bakery` still drives GitHub *code* operations; a new
-  variable for artifact namespace/path prefix may be introduced in scripts,
-  not `.env`, until the design settles.
+  split to one arch per invocation (per-arch matrix leg writes a partial
+  `SHA256SUMS.<arch>` + build log), and move the git tag push out of the
+  per-arch path so only the publish job tags, once, after the join.
+- Publish-join job (new, in `release.yaml`/`rebuild.yaml`): runs on the
+  amd64 Namespace profile; downloads both arch staging artifacts
+  (`namespace-actions/download-artifact@v2`), joins `SHA256SUMS`, assembles
+  `.conf` set + `Release.md`, pushes the git tag, and creates the GitHub
+  release. Absorbs the 8 `softprops/action-gh-release` sites (metadata
+  jobs keep theirs — they only run `release_meta.sh`, which is unchanged).
+  For `rebuild.yaml`, its existing delete-release-after-build step stays,
+  now in the publish job immediately before re-creating the release.
+- **Unchanged by design**: `release_dispatcher.sh`, `release_meta.sh`,
+  `lib/helpers.sh` (`github_release_exists`, `list-bakery`),
+  `lib/sysupdate.conf.tmpl`, `.env`, `tools/http-url-rewrite-server/**`
+  (hub still redirects to GitHub Releases), `docs/**` release links.
+- `AGENTS.md`/`CLAUDE.md` — patch #23 row (workflows + `release.sh` split),
+  expected-diff list narrowed to `.github/workflows/*` + `release.sh`,
+  sanity checks extended with a Namespace run spot-check; Release
+  Verification section unchanged (assets still land on GitHub).
 
 ## Plan (gated)
 
-- **Phase 0 — unblock + live spike.** Re-enable Actions (org UI). Run PR #22's
-  probe: confirm profile labels schedule on both arches, disk/RAM/docker/nsc
-  facts, staging upload→join→download, `nsc artifact` lifecycle incl.
-  re-upload and cache-url. Record answers to the 7 open questions above.
-  *Gate: no Phase 1 until the probe is green on both arches.*
+- **Phase 0 — unblock + live spike. ✅ DONE** (fork auto-disable re-enabled;
+  probe green on both arches; findings above).
 - **Phase 1 — pilot.** `rebuild.yaml` only: native split + publish-join for
-  `dust`/`eza`, publishing to Namespace *and* GitHub (dual-publish despite
-  decision 5, for exactly one pilot). Verify from a real node/box:
-  sysupdate-style fetch of SHA256SUMS + `.raw` through the hub prototype.
-  *Gate: byte-identical `.raw` vs the GH-published build (`sha256sum`).*
-- **Phase 2 — distribution cutover.** `release.sh` split, dispatcher/meta
-  rewrites, hub minting proxy deployed (needs the hub DNS record — known
-  issue), docs repointed. New builds Namespace-only; on success delete the
-  corresponding GH release + tag (decision 5/7).
-- **Phase 3 — all workflows + back-catalogue.** Remaining workflows move;
-  back-catalogue objects copied GH→Namespace (scripted `gh release download`
-  → `nsc artifact upload`), verified against published SHA256SUMS, then GH
-  releases + tags deleted in bulk.
-- **Phase 4 — caching.** Profile cache options on; `cache-url` retrofits only
-  where build logs prove download pain; cache-commit restricted to `main`.
-- **Phase 5 — bookkeeping.** Patch #23 registered, expected-diff + release
-  verification sections rewritten, spike branch/PR deleted.
+  `dust`, end-to-end to a real GitHub release. Compare the published
+  `SHA256SUMS` against a same-version build from the current workflow, and
+  record real staging upload/download time for a real `.raw`.
+  *Gate: release assets byte-identical in structure (both arches, .conf,
+  SHA256SUMS, logs) and the rebuild-replaces-release flow still works.*
+- **Phase 2 — all workflows.** `release.yaml` gets the same split/join;
+  `update-all-metadata` + `report-missing-extension-docs` get label swaps.
+  Watch docker/ollama/coder for the 55 GiB disk / 7.8 GiB RAM ceiling;
+  upsize per extension only on evidence.
+- **Phase 3 — caching.** Profile cache options already on; optional
+  `namespacelabs/nscloud-checkout-action` swap; `cache-url` retrofits only
+  where build logs prove download pain (pinned URLs only); cache-commit
+  restricted to `main` so feature branches cannot poison main's cache.
+- **Phase 4 — bookkeeping.** Patch #23 registered in AGENTS.md/CLAUDE.md,
+  expected-diff + sanity checks updated, spike branch/PR deleted.
 
 ## Budget check (2026-10-16)
 
@@ -236,9 +220,8 @@ cache-volumes, federation/github-actions, billing-and-limits, pricing page.
   workflows × 4 unit-min (4 vCPU/8 GiB shape) ≈ **10–15k unit minutes/mo**
   (≈$15–22 pay-as-you-go at $0.0015/unit-min; Team includes 100k for $100).
   Native arm64 removes QEMU overhead, so this should fall, not rise.
-- Back-catalogue: 321 GH releases, **110.8 GiB** of assets → artifact storage
-  ≈ $22/mo at $0.20/GB-month, plus metered reads per node download (price
-  TBD per plan). New-build growth is additional.
+- Back-catalogue (context only, no longer moving): 321 GH releases,
+  **110.8 GiB** of assets — stays on GitHub, free and unmetered.
 - The 2000/2000 error was the org's **GitHub Free plan included minutes**
   (2,000/mo, consumed by *private* repos; qopsc plan = `free`). Public-repo
   minutes are fully discounted (net $0) but private repos (confetti,
@@ -250,26 +233,30 @@ cache-volumes, federation/github-actions, billing-and-limits, pricing page.
   storage at all. It never used GHCR: bake images come from docker.io/
   quay.io and, on Namespace, are served by the profile's container cache
   (nscr.io). Remaining GitHub contact is unmetered: orchestration/logs,
-  git clones (code stays), the issues API in the docs workflow, and
-  GitHub Pages (docs site / hub fallback redirect). Org-level risk stays
-  until the private repos also move or the org leaves the Free plan:
-  their GH-hosted jobs keep eating the same 2,000-min pool, and org
-  Actions cache already totals 14.8 GiB (oarlock 11.8 GiB).
+  git clones (code stays), the issues API in the docs workflow, GitHub
+  Releases (unchanged), and GitHub Pages (docs site / hub fallback
+  redirect). Org-level risk stays until the private repos also move or the
+  org leaves the Free plan: their GH-hosted jobs keep eating the same
+  2,000-min pool, and org Actions cache already totals 14.8 GiB
+  (oarlock 11.8 GiB).
 - Namespace-side TODO (dashboard, cannot be done via this repo): confirm
   plan tier + payment method; check Linux concurrency cap for the chosen
   plan (Developer 32 vCPU = 8 concurrent 4c-8g jobs — release matrices will
-  queue; Team 64 / Business 160); set Namespace billing alerts; confirm
-  included artifact storage/reads; (Phase 2) mint the scoped hub token.
-  Profiles, caches (100 GiB bundled), GitHub app install, and arm64 platform
-  are already verified working live.
+  queue; Team 64 / Business 160); set Namespace billing alerts. No artifact
+  storage/reads budgeting needed (staging artifacts are short-lived;
+  distribution never moved). Profiles, caches (100 GiB bundled), GitHub
+  app install, and arm64 platform are already verified working live. No
+  hub token to mint.
 
 ## Risks recorded against the locked decisions
 
-- Deletion-on-success (decision 5) before hub fetch is proven can orphan
-  nodes; Phase 1's dual-publish is the deliberate exception that de-risks it.
-- Fleet egress becomes metered (artifact reads). If the per-GB read price is
-  material at fleet scale, the hub may need to cache `.raw` objects on its own
-  disk instead of redirecting every node to Namespace — decide with Phase 0
-  pricing answers.
-- Halved RAM (16 GB → 8 GB) may OOM docker/ollama/coder bakes; Phase 1/2 must
-  watch for it and invoke the per-extension upsize escape hatch (decision 6).
+- Halved RAM (16 GB → 8 GB, +8 GiB swap) and 55 GiB disk may squeeze
+  docker/ollama/coder bakes; Phases 1–2 must watch for it and invoke the
+  per-extension upsize escape hatch (decision 4).
+- Native split changes `release.sh`'s contract (one arch per leg, tag once
+  in publish): `rebuild.yaml`'s delete-then-recreate ordering must be
+  preserved in the publish job, or a failed join could leave a published
+  version deleted. Publish job deletes only after both arch artifacts are
+  present and joined.
+- Namespace concurrency caps can serialize the daily matrix on lower plan
+  tiers; jobs queue rather than fail, but release latency grows.
