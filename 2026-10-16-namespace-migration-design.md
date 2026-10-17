@@ -4,7 +4,8 @@ Status: **SPIKE COMPLETE, PLAN AMENDED** — spike green on both arches (runs
 38888125159, 38888336108, 38888465328); throwaway probe on branch
 `spike/namespace-runner-test`, PR #22 (do not merge). Decision amended
 2026-10-16 after the quota investigation: **GitHub Releases stay** (see
-decision 3). Ready for Phase 1 (pilot) on approval.
+decision 3). Phases 1–2 executed on `namespace/pilot-rebuild`. This patch
+is fork-local policy and will **not be upstreamed** to flatcar.
 
 ## Locked decisions (from grilling, as amended)
 
@@ -215,12 +216,27 @@ cache-volumes, federation/github-actions, billing-and-limits, pricing page.
   waited for the whole matrix before too; if time-to-first-release ever
   matters, restructure as a reusable per-release workflow — not needed
   for a daily cadence.
-- **Phase 3 — caching.** Profile cache options already on; optional
-  `namespacelabs/nscloud-checkout-action` swap; `cache-url` retrofits only
-  where build logs prove download pain (pinned URLs only); cache-commit
-  restricted to `main` so feature branches cannot poison main's cache.
-- **Phase 4 — bookkeeping.** Patch #23 registered in AGENTS.md/CLAUDE.md,
-  expected-diff + sanity checks updated, spike branch/PR deleted.
+- **Phase 3 — caching. ✅ DONE (assessed; mostly already on).** Profile-
+  level caches (container images, git mirror, runner tools, Actions
+  cache, 100 GiB bundled) were already enabled and are exercised by
+  every job. Measured Phase 2 evidence killed the code-side ideas:
+  ollama's 1.7 GiB `.raw` stages in ~5–15 s (~300 MB/s) and publishes
+  download both arches in ~11 s, checkouts take seconds (2.8 MB repo),
+  and upstream tarballs change version daily so `cache-url` would miss
+  except on rebuilds. Therefore: no `nscloud-checkout-action` swap
+  (seconds saved, and publish legs rely on `actions/checkout`'s persisted
+  push credentials for tagging), no `cache-url` retrofits (revisit only
+  with build-log evidence for a specific pinned download; never use it
+  for moving `latest` URLs). Remaining operator item, Namespace
+  dashboard only: restrict cache commits to `main` so feature branches
+  cannot poison main's cache generations.
+- **Phase 4 — bookkeeping. ✅ DONE.** Patch #23 registered in
+  AGENTS.md §23 (fork-local, not upstreamed) and CLAUDE.md; expected-
+  diff list gained the two extra workflows, `release.sh`, and this doc;
+  sanity checks gained `release.sh` + a no-GitHub-hosted-labels grep.
+  Remaining manual cleanup: close/delete spike PR #22 and branch, and
+  merge `namespace/pilot-rebuild` into qopsc `main` when the maintainer
+  chooses (daily schedules pick it up from there).
 
 ## Budget check (2026-10-16)
 

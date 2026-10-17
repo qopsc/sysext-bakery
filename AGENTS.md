@@ -13,7 +13,7 @@ Instructions for AI agents (Claude, Copilot, Cursor, Aider, etc.) working on thi
 - **Fork hub**: `extensions.quantumops.consulting` — **not yet stood up**, see Known Issues.
 - **Legacy fork** (retired): `darkspadez/sysext-bakery` / `sysext.darkspadez.me` — kept only until nodes deployed from it are re-provisioned.
 
-The fork's divergence from `flatcar/main` is **twenty-two permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
+The fork's divergence from `flatcar/main` is **twenty-three permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
 
 | # | Patch | File(s) | Kind |
 |---|-------|---------|------|
@@ -39,6 +39,7 @@ The fork's divergence from `flatcar/main` is **twenty-two permanent patches** pl
 | 20 | tilde documentation | `docs/tilde.md`, `docs/index.md` tilde row | docs |
 | 21 | restic extension | `restic.sysext/**`, `docs/restic.md`, `docs/index.md` restic row, `release_build_versions.txt` restic lines | policy |
 | 22 | Chrony numeric-tag listing | `chrony.sysext/create.sh` | upstream bugfix |
+| 23 | Namespace runners + native per-arch builds | `.github/workflows/{release,rebuild,update-all-metadata,report-missing-extension-docs}.yaml`, `release.sh`, `2026-10-16-namespace-migration-design.md` | policy |
 
 Patches marked **upstream bugfix** (2, 7, 8, 12, 19, 22) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
 
@@ -317,6 +318,21 @@ Chrony's GitLab repo tags stable releases as `4.9` but also ships `-pre` tags an
 - Do not drop the `sort -Vr` in `list_gitlab_tags` to paper over this; the sort is correct once the list is real versions.
 - If upstream ever filters the same way, this patch disappears on rebase.
 
+### 23. Namespace runners + native per-arch builds
+
+**Files**: `.github/workflows/release.yaml`, `.github/workflows/rebuild.yaml`, `.github/workflows/update-all-metadata.yaml`, `.github/workflows/report-missing-extension-docs.yaml`, `release.sh` (`--arch`/`--join` modes), and the design record `2026-10-16-namespace-migration-design.md`.
+
+All CI runs on Namespace runners (Namespace is a runner *backend* for GitHub Actions, not a replacement). Each extension builds natively per architecture and a publish job joins the two arches. This exists because the org is on GitHub's Free plan: private-repo jobs burned the shared 2,000 included GitHub-hosted minutes/month (the "2000/2000" wall), and metered GitHub minutes/artifacts/Packages storage are what must stay at zero. **Fork-local policy, deliberately not upstreamed** — upstream has no Namespace account. Background: the design doc.
+
+**Rules**:
+- `runs-on` is always `namespace-profile-linux-amd64-4c-8g-u24` or `namespace-profile-linux-arm64-4c-8g-u24` (build legs pick by `matrix.arch`). Never reintroduce `ubuntu-*` GitHub-hosted labels or `docker/setup-qemu-action`: arm64 builds natively. On upstream conflicts take upstream's workflow, then re-apply the labels, arch matrix, staging and publish-join structure.
+- `release.sh` contract: `--arch <arch>` builds one arch, writes `SHA256SUMS.<arch>`, and does **not** tag; `--join` assembles both arches' artefacts, writes the final `SHA256SUMS`/`Release.md`, and tags **once**. The legacy no-arg mode stays for local parity with upstream.
+- Staging between build and publish uses `namespace-actions/upload-artifact@v1` / `download-artifact@v2` (`retention-days: 1`, `compression-level: 0`). Never `actions/upload-artifact`: GitHub artifact storage is metered org-wide.
+- In `rebuild.yaml`, the publish job deletes the existing GitHub release only after the join succeeds, immediately before re-creating it (same invariant as patch 18 — a failed build leaves the old release untouched).
+- **GitHub Releases stay the distribution and the source of truth.** `.raw` files are public-repo release assets: free, unmetered, anonymously downloadable by systemd-sysupdate, and unaffected by Actions outages. Do not move distribution to the Namespace artifact store (it has no public access — downloads are workspace-authenticated 30-minute signed URLs) and do not delete releases or git tags; the full-exit design was evaluated, spiked, and rejected in the design doc. `release_dispatcher.sh`, `release_meta.sh`, `github_release_exists`, hub Caddy redirects and docs release links are unchanged.
+- Namespace profile config (caches, concurrency) lives in the Namespace dashboard, not this repo. The 4c-8g shape (7.8 GiB RAM + swap, ~55 GiB disk) fits every current bake (docker 29.9.1 and ollama verified 2026-10-17; scx arm64 is the slowest leg at ~39 min); upsize a profile only on a proven OOM/disk failure.
+- Operator warning: GitHub auto-disabled this fork's workflows once ("due to the scale of GitHub Actions usage", ~2026-10-14) even though every API reported Actions enabled; only a maintainer clicking re-enable on the repo Actions page cleared it. If schedules silently stop again, check that banner before debugging workflows — Namespace runners cannot start while Actions is off.
+
 ---
 
 ## Rebuilding a published version
@@ -354,6 +370,10 @@ Expected, and nothing else:
 .env  .gitignore  AGENTS.md  CLAUDE.md
 .github/workflows/release.yaml
 .github/workflows/rebuild.yaml
+.github/workflows/update-all-metadata.yaml
+.github/workflows/report-missing-extension-docs.yaml
+release.sh
+2026-10-16-namespace-migration-design.md
 rebuild_dispatcher.sh
 docker.sysext/create.sh
 lib/generate.sh
@@ -381,7 +401,8 @@ README.md  docs/netbird.md  netbird.sysext/**
 And sanity-check the scripts:
 
 ```bash
-bash -n docker.sysext/create.sh lib/generate.sh lib/helpers.sh release_meta.sh release_dispatcher.sh rebuild_dispatcher.sh nvidia-runtime.sysext/create.sh arcane.sysext/create.sh dust.sysext/create.sh eza.sysext/create.sh iperf3.sysext/create.sh iperf3.sysext/build.sh neovim.sysext/create.sh restic.sysext/create.sh bird.sysext/create.sh chrony.sysext/create.sh
+bash -n release.sh docker.sysext/create.sh lib/generate.sh lib/helpers.sh release_meta.sh release_dispatcher.sh rebuild_dispatcher.sh nvidia-runtime.sysext/create.sh arcane.sysext/create.sh dust.sysext/create.sh eza.sysext/create.sh iperf3.sysext/create.sh iperf3.sysext/build.sh neovim.sysext/create.sh restic.sysext/create.sh bird.sysext/create.sh chrony.sysext/create.sh
+grep -rnE 'ubuntu-24\.04|setup-qemu|uses: actions/(upload|download)-artifact' .github/workflows/  # must be empty (patch 23; namespace-actions/* is fine)
 ./bakery.sh list docker | head
 ./bakery.sh list nvidia-runtime | head
 ./bakery.sh list arcane | head
