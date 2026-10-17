@@ -188,12 +188,18 @@ cache-volumes, federation/github-actions, billing-and-limits, pricing page.
 
 - **Phase 0 — unblock + live spike. ✅ DONE** (fork auto-disable re-enabled;
   probe green on both arches; findings above).
-- **Phase 1 — pilot.** `rebuild.yaml` only: native split + publish-join for
-  `dust`, end-to-end to a real GitHub release. Compare the published
-  `SHA256SUMS` against a same-version build from the current workflow, and
-  record real staging upload/download time for a real `.raw`.
-  *Gate: release assets byte-identical in structure (both arches, .conf,
-  SHA256SUMS, logs) and the rebuild-replaces-release flow still works.*
+- **Phase 1 — pilot. ✅ DONE** (run 39071157202, branch
+  `namespace/pilot-rebuild`). `rebuild.yaml` native split + publish-join
+  rebuilt `dust:v1.2.6` end-to-end: list 10s, builds 9s (x86-64) / 18s
+  (arm64, includes apt), publish 14s, both metadata jobs green; ~90s
+  total vs 3m30s for the old QEMU flow. **Gate passed**: release asset
+  list and sizes identical to the pre-pilot release, `.conf` identical,
+  and `SHA256SUMS` **byte-identical** — EROFS images are reproducible
+  (zero UUID), so `sha256sum -c` verifies against the sums published
+  before the rebuild. Delete-then-recreate worked from the publish job;
+  per-extension and global metadata releases updated. `release.sh`
+  gained `--arch`/`--join` modes; the legacy no-arg path is untouched,
+  so `release.yaml` keeps working until Phase 2.
 - **Phase 2 — all workflows.** `release.yaml` gets the same split/join;
   `update-all-metadata` + `report-missing-extension-docs` get label swaps.
   Watch docker/ollama/coder for the 55 GiB disk / 7.8 GiB RAM ceiling;
