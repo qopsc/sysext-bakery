@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   report-missing-extension-docs:
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-linux-amd64-4c-8g-u24
 
     steps:
       - uses: actions/checkout@v4

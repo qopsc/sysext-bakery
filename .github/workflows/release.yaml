@@ -14,7 +14,7 @@ on:
 
 jobs:
   list-builds:
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-linux-amd64-4c-8g-u24
     outputs:
       builds: ${{ steps.list.outputs.builds }}
       extensions: ${{ steps.list.outputs.extensions }}
@@ -43,7 +43,9 @@ jobs:
           pushd bakery
           ./release_dispatcher.sh
 
-  create-release:
+  # qopsc fork (patch #23): one native leg per architecture on Namespace
+  # runners instead of a single QEMU job building both arches.
+  build:
     needs: list-builds
     if: ${{ needs.list-builds.outputs.builds != '[]' && needs.list-builds.outputs.builds != '' }}
     strategy:
@@ -52,20 +54,13 @@ jobs:
       fail-fast: false
       matrix:
         release: ${{ fromJson(needs.list-builds.outputs.builds) }}
+        arch: [x86-64, arm64]
     # Try to finish all jobs even if one fails.
     # Job fails can be transient and will be re-tried every time this action runs.
-    # NOTE that this will cause succeeding jobs (update metadata) to run even if the whole matrix fails.
-    #      This is intended and should not cause any issues[tm].
-    continue-on-error: true 
+    continue-on-error: true
 
-    runs-on: ubuntu-24.04
-    permissions:
-      # allow the action to create a release
-      contents: write
+    runs-on: ${{ matrix.arch == 'arm64' && 'namespace-profile-linux-arm64-4c-8g-u24' || 'namespace-profile-linux-amd64-4c-8g-u24' }}
     steps:
-      - name: Set up qemu / binmft misc for cross-platform builds
-        uses: docker/setup-qemu-action@v3
-
       - name: Check out the bakery repo
         uses: actions/checkout@v4
         with:
@@ -83,13 +78,94 @@ jobs:
             xz-utils \
             erofs-utils
 
-      - name: build
-        id: build
+      - name: build one architecture
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_SPEC: ${{ matrix.release }}
+          ARCH: ${{ matrix.arch }}
         run: |
+          set -euxo pipefail
           pushd bakery
-          ./release.sh ${{ matrix.release }}
+          ./release.sh "${RELEASE_SPEC}" --arch "${ARCH}"
+
+      - name: compute artefact name
+        id: artefact
+        env:
+          RELEASE_SPEC: ${{ matrix.release }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euxo pipefail
+          extension="${RELEASE_SPEC%%:*}"
+          version="${RELEASE_SPEC#*:}"
+          echo "name=${extension}-${version}-${ARCH}" >> "${GITHUB_OUTPUT}"
+          echo "base=${extension}-${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: stage build artefacts (Namespace)
+        uses: namespace-actions/upload-artifact@v1
+        with:
+          name: ${{ steps.artefact.outputs.name }}
+          path: |
+            bakery/${{ steps.artefact.outputs.base }}-${{ matrix.arch }}.raw
+            bakery/${{ steps.artefact.outputs.base }}-${{ matrix.arch }}-build.log
+            bakery/SHA256SUMS.${{ matrix.arch }}
+            bakery/*.conf
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+  # qopsc fork (patch #23): join both architectures, tag once, and create
+  # the GitHub release. Releases remain the distribution.
+  publish-release:
+    needs: [ list-builds, build ]
+    if: ${{ needs.list-builds.outputs.builds != '[]' && needs.list-builds.outputs.builds != '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ${{ fromJson(needs.list-builds.outputs.builds) }}
+    # Same rationale as build: a failed publish must not skip the metadata
+    # jobs, which 'need' this one.
+    continue-on-error: true
+    runs-on: namespace-profile-linux-amd64-4c-8g-u24
+    permissions:
+      # allow the action to create a release
+      contents: write
+    steps:
+      - name: Check out the bakery repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch != '' && inputs.branch || 'main' }}
+          path: bakery
+
+      - name: compute artefact base name
+        id: artefact
+        env:
+          RELEASE_SPEC: ${{ matrix.release }}
+        run: |
+          set -euxo pipefail
+          extension="${RELEASE_SPEC%%:*}"
+          version="${RELEASE_SPEC#*:}"
+          echo "base=${extension}-${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: download both architecture artefacts
+        uses: namespace-actions/download-artifact@v2
+        with:
+          pattern: ${{ steps.artefact.outputs.base }}-*
+          path: staging
+          merge-multiple: false
+
+      - name: join arches and tag
+        id: build
+        env:
+          RELEASE_SPEC: ${{ matrix.release }}
+          BASE: ${{ steps.artefact.outputs.base }}
+        run: |
+          set -euxo pipefail
+          cp "staging/${BASE}-x86-64/"* bakery/
+          cp "staging/${BASE}-arm64/${BASE}-arm64.raw" bakery/
+          cp "staging/${BASE}-arm64/${BASE}-arm64-build.log" bakery/
+          cp "staging/${BASE}-arm64/SHA256SUMS.arm64" bakery/
+          pushd bakery
+          ./release.sh "${RELEASE_SPEC}" --join
 
       - name: create a new release
         uses: softprops/action-gh-release@v2
@@ -104,7 +180,7 @@ jobs:
             bakery/*-build.log
 
   update-extension-metadata:
-    needs: [ list-builds, create-release ]
+    needs: [ list-builds, publish-release ]
     if: ${{ needs.list-builds.outputs.extensions != '[]' && needs.list-builds.outputs.extensions != '' }}
     strategy:
       # qopsc fork: one extension's metadata failure must not cancel the other
@@ -112,11 +188,11 @@ jobs:
       fail-fast: false
       matrix:
         extension: ${{ fromJson(needs.list-builds.outputs.extensions) }}
-    # qopsc fork: same rationale as create-release above -- a failed leg must
+    # qopsc fork: same rationale as publish-release above -- a failed leg must
     # not skip update-global-metadata, which 'needs' this job. Publishing a
     # global SHA256SUMS missing one extension beats publishing none at all.
     continue-on-error: true
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-linux-amd64-4c-8g-u24
     permissions:
       # allow the action to create a release
       contents: write
@@ -161,7 +237,7 @@ jobs:
     # which is why the global SHA256SUMS release was never published.
     needs: [ list-builds, update-extension-metadata ]
     if: ${{ needs.list-builds.outputs.extensions != '[]' && needs.list-builds.outputs.extensions != '' }}
-    runs-on: ubuntu-24.04
+    runs-on: namespace-profile-linux-amd64-4c-8g-u24
     permissions:
       # allow the action to create a release
       contents: write
