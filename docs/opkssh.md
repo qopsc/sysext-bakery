@@ -39,13 +39,13 @@ storage:
   files:
     - path: /opt/extensions/opkssh/opkssh-v0.5.1-arm64.raw
       contents:
-        source: https://extensions.flatcar.org/extensions/opkssh-v0.5.1-arm64.raw
+        source: https://extensions.quantumops.consulting/extensions/opkssh-v0.5.1-arm64.raw
     - path: /etc/sysupdate.opkssh.d/opkssh-v0.5.1.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/opkssh/opkssh-v0.5.1.conf
+        source: https://extensions.quantumops.consulting/extensions/opkssh/opkssh-v0.5.1.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
     - path: /etc/opk/providers
       mode: 0640
       group:

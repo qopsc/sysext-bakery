@@ -27,13 +27,13 @@ storage:
     - path: /opt/extensions/ig/ig-v0.43.0-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/ig-v0.43.0-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/ig-v0.43.0-x86-64.raw
     - path: /etc/sysupdate.ig.d/ig.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/ig.conf
+        source: https://extensions.quantumops.consulting/extensions/ig.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
   links:
     - target: /opt/extensions/ig/ig-v0.43.0-x86-64.raw
       path: /etc/extensions/ig.raw

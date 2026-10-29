@@ -33,13 +33,13 @@ storage:
     - path: /opt/extensions/k3s/k3s-v1.32.2+k3s1-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/k3s-v1.32.2+k3s1-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/k3s-v1.32.2+k3s1-x86-64.raw
     - path: /etc/sysupdate.k3s-v1.32.d/k3s-v1.32.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/k3s/k3s-v1.32.conf
+        source: https://extensions.quantumops.consulting/extensions/k3s/k3s-v1.32.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
   links:
     - target: /opt/extensions/k3s/k3s-v1.32.2+k3s1-x86-64.raw
       path: /etc/extensions/k3s.raw

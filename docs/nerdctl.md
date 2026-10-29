@@ -21,13 +21,13 @@ storage:
     - path: /opt/extensions/nerdctl-v2.0.4-x86-64.raw
       mode: 0420
       contents:
-        source: https://extensions.flatcar.org/extensions/nerdctl-v2.0.4-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/nerdctl-v2.0.4-x86-64.raw
     - path: /etc/sysupdate.nerdctl.d/nerdctl.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/nerdctl.conf
+        source: https://extensions.quantumops.consulting/extensions/nerdctl.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
   links:
     - target: /opt/extensions/nerdctl-v2.0.4-x86-64.raw
       path: /etc/extensions/nerdctl.raw

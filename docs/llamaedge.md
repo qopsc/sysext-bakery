@@ -36,20 +36,20 @@ storage:
     - path: /opt/extensions/wasmedge-0.14.1-x86-64.raw
       mode: 0420
       contents:
-        source: https://extensions.flatcar.org/extensions/wasmedge-0.14.1-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/wasmedge-0.14.1-x86-64.raw
     - path: /opt/extensions/llamaedge-0.14.16-x86-64.raw
       mode: 0420
       contents:
-        source: https://extensions.flatcar.org/extensions/llamaedge-0.14.16-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/llamaedge-0.14.16-x86-64.raw
     - path: /etc/sysupdate.wasmedge.d/wasmedge.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/wasmedge.conf
+        source: https://extensions.quantumops.consulting/extensions/wasmedge.conf
     - path: /etc/sysupdate.wasmedge.d/llamaedge.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/llamaedge.conf
+        source: https://extensions.quantumops.consulting/extensions/llamaedge.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
   links:
     - target: /opt/extensions/wasmedge-0.14.1-x86-64.raw
       path: /etc/extensions/wasmedge.raw

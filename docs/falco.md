@@ -38,13 +38,13 @@ storage:
     - path: /opt/extensions/falco/falco-0.40.0-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/falco-0.40.0-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/falco-0.40.0-x86-64.raw
     - path: /etc/sysupdate.falco.d/falco.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/falco.conf
+        source: https://extensions.quantumops.consulting/extensions/falco.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
   links:
     - target: /opt/extensions/falco/falco-0.40.0-x86-64.raw
       path: /etc/extensions/falco.raw

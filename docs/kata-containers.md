@@ -47,13 +47,13 @@ storage:
     - path: /opt/extensions/kata-containers/kata-containers-3.21.0-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/kata-containers-3.21.0-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/kata-containers-3.21.0-x86-64.raw
     - path: /etc/sysupdate.kata-containers.d/kata-containers.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/kata-containers.conf
+        source: https://extensions.quantumops.consulting/extensions/kata-containers.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
   links:
     - target: /opt/extensions/kata-containers/kata-containers-3.21.0-x86-64.raw
       path: /etc/extensions/kata-containers.raw

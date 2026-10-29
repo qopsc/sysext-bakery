@@ -29,13 +29,13 @@ storage:
   files:
     - path: /opt/extensions/ollama/ollama-v0.6.3-x86-64.raw
       contents:
-        source: https://extensions.flatcar.org/extensions/ollama-v0.6.3-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/ollama-v0.6.3-x86-64.raw
     - path: /etc/sysupdate.ollama.d/ollama.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/ollama.conf
+        source: https://extensions.quantumops.consulting/extensions/ollama.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
   links:
     - target: /opt/extensions/ollama/ollama-v0.6.3-x86-64.raw
       path: /etc/extensions/ollama.raw

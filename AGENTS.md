@@ -10,10 +10,10 @@ Instructions for AI agents (Claude, Copilot, Cursor, Aider, etc.) working on thi
 
 - **Fork**: `qopsc/sysext-bakery` (git remote: `origin`)
 - **Upstream**: `flatcar/sysext-bakery` (git remote: `flatcar`)
-- **Fork hub**: `extensions.quantumops.consulting` — **not yet stood up**, see Known Issues.
+- **Fork hub**: `extensions.quantumops.consulting` — live since 2026-10-28, served from the `qopsc/stacks` cluster (`apps/sysext-hub`); this repo's Caddy config is the reference it is tested against.
 - **Legacy fork** (retired): `darkspadez/sysext-bakery` / `sysext.darkspadez.me` — kept only until nodes deployed from it are re-provisioned.
 
-The fork's divergence from `flatcar/main` is **twenty-three permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
+The fork's divergence from `flatcar/main` is **twenty-four permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
 
 | # | Patch | File(s) | Kind |
 |---|-------|---------|------|
@@ -40,6 +40,7 @@ The fork's divergence from `flatcar/main` is **twenty-three permanent patches** 
 | 21 | restic extension | `restic.sysext/**`, `docs/restic.md`, `docs/index.md` restic row, `release_build_versions.txt` restic lines | policy |
 | 22 | Chrony numeric-tag listing | `chrony.sysext/create.sh` | upstream bugfix |
 | 23 | Namespace runners + native per-arch builds | `.github/workflows/{release,rebuild,update-all-metadata,report-missing-extension-docs}.yaml`, `release.sh`, `2026-10-16-namespace-migration-design.md` | policy |
+| 24 | Docs point at the fork hub | `docs/*.md` except `docs/netbird.md` (`extensions.flatcar.org` → `extensions.quantumops.consulting`) | policy |
 
 Patches marked **upstream bugfix** (2, 7, 8, 12, 19, 22) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
 
@@ -440,6 +441,4 @@ A leftover **draft** release is a red flag: it means an upload failed, and it wi
 
 ## Known Issues
 
-- **`extensions.quantumops.consulting` does not resolve.** The `quantumops.consulting` zone exists (ClouDNS), but the `extensions` subdomain has no record. `lib/sysupdate.conf.tmpl` bakes `https://{BAKERY_HUB}/extensions/…` into the `.conf` inside every released image, so images published today ship an unusable sysupdate source. Builds and releases are unaffected; **node-side sysupdate is not usable until the hub is stood up**. Legacy `sysext.darkspadez.me` still resolves (152.53.243.195). Do not "fix" this by editing `.env` — see patch 4.
-
-  The hub's serving config now exists and is deployable — see patch 9 and `tools/http-url-rewrite-server/README.md`. The remaining work is external to this repo: create the A record pointing at the host, then run the installer. Until then Caddy starts but Let's Encrypt cannot issue a certificate.
+None open. The fork hub (`extensions.quantumops.consulting`) went live on 2026-10-28; images baked with `lib/sysupdate.conf.tmpl` now resolve. Nodes also need `/etc/sysupdate.d/noop.conf` (served from the `noop` release, source in `tools/http-url-rewrite-server/noop.conf`), or `systemd-sysupdate` stops with "No transfer definitions found."

@@ -24,10 +24,10 @@ storage:
     - path: /opt/extensions/vault/vault-1.20.0-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/vault-1.20.0-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/vault-1.20.0-x86-64.raw
     - path: /etc/sysupdate.vault.d/vault.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/vault.conf
+        source: https://extensions.quantumops.consulting/extensions/vault.conf
   links:
     - path: /etc/systemd/system/multi-user.target.wants/vault.service
       target: /usr/local/lib/systemd/system/vault.service

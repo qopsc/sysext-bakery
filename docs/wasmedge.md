@@ -28,7 +28,7 @@ storage:
         source: https://github.com/flatcar/sysext-bakery/releases/download/wasmedge-0.14.1-x86-64.raw
     - path: /etc/sysupdate.wasmedge.d/wasmedge.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/wasmedge.conf
+        source: https://extensions.quantumops.consulting/extensions/wasmedge.conf
   links:
     - target: /opt/extensions/wasmedge-0.14.1-x86-64.raw
       path: /etc/extensions/wasmedge.raw

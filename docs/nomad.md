@@ -25,10 +25,10 @@ storage:
     - path: /opt/extensions/nomad/nomad-1.10.0-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/nomad-1.10.0-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/nomad-1.10.0-x86-64.raw
     - path: /etc/sysupdate.nomad.d/nomad.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/nomad.conf
+        source: https://extensions.quantumops.consulting/extensions/nomad.conf
   links:
     - path: /etc/systemd/system/multi-user.target.wants/nomad.service
       target: /usr/local/lib/systemd/system/nomad.service
