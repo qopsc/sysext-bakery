@@ -13,7 +13,7 @@ Instructions for AI agents (Claude, Copilot, Cursor, Aider, etc.) working on thi
 - **Fork hub**: `extensions.quantumops.consulting` — live since 2026-10-28, served from the `qopsc/stacks` cluster (`apps/sysext-hub`); this repo's Caddy config is the reference it is tested against.
 - **Legacy fork** (retired): `darkspadez/sysext-bakery` / `sysext.darkspadez.me` — kept only until nodes deployed from it are re-provisioned.
 
-The fork's divergence from `flatcar/main` is **twenty-four permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
+The fork's divergence from `flatcar/main` is **twenty-five permanent patches** plus any temporary divergences listed below. Anything not covered by either list is drift — investigate and remove it.
 
 | # | Patch | File(s) | Kind |
 |---|-------|---------|------|
@@ -41,6 +41,7 @@ The fork's divergence from `flatcar/main` is **twenty-four permanent patches** p
 | 22 | Chrony numeric-tag listing | `chrony.sysext/create.sh` | upstream bugfix |
 | 23 | Namespace runners + native per-arch builds | `.github/workflows/{release,rebuild,update-all-metadata,report-missing-extension-docs}.yaml`, `release.sh`, `2026-10-16-namespace-migration-design.md` | policy |
 | 24 | Docs point at the fork hub | `docs/*.md` except `docs/netbird.md` (`extensions.flatcar.org` → `extensions.quantumops.consulting`) | policy |
+| 25 | Hub landing page + version manifest | `html/**`, `release_manifest.sh`, `tests/release_manifest_test.sh`, `tests/fixtures/gh-releases.json`, manifest steps in `.github/workflows/{release,update-all-metadata}.yaml` | policy |
 
 Patches marked **upstream bugfix** (2, 7, 8, 12, 19, 22) fix defects that also exist in `flatcar/main`. They are carried fork-locally by choice. If they are ever upstreamed, drop them here on the next rebase and move them to the temporary-divergence list in the meantime.
 
@@ -333,6 +334,16 @@ All CI runs on Namespace runners (Namespace is a runner *backend* for GitHub Act
 - **GitHub Releases stay the distribution and the source of truth.** `.raw` files are public-repo release assets: free, unmetered, anonymously downloadable by systemd-sysupdate, and unaffected by Actions outages. Do not move distribution to the Namespace artifact store (it has no public access — downloads are workspace-authenticated 30-minute signed URLs) and do not delete releases or git tags; the full-exit design was evaluated, spiked, and rejected in the design doc. `release_dispatcher.sh`, `release_meta.sh`, `github_release_exists`, hub Caddy redirects and docs release links are unchanged.
 - Namespace profile config (caches, concurrency) lives in the Namespace dashboard, not this repo. The 4c-8g shape (7.8 GiB RAM + swap, ~55 GiB disk) fits every current bake (docker 29.9.1 and ollama verified 2026-10-17; scx arm64 is the slowest leg at ~39 min); upsize a profile only on a proven OOM/disk failure.
 - Operator warning: GitHub auto-disabled this fork's workflows once ("due to the scale of GitHub Actions usage", ~2026-10-14) even though every API reported Actions enabled; only a maintainer clicking re-enable on the repo Actions page cleared it. If schedules silently stop again, check that banner before debugging workflows — Namespace runners cannot start while Actions is off.
+
+### 25. Hub landing page + version manifest
+
+**Files**: `html/**`, `release_manifest.sh`, `tests/release_manifest_test.sh`, `tests/fixtures/gh-releases.json`, manifest steps in `.github/workflows/{release,update-all-metadata}.yaml`.
+
+`html/index.html` is a standalone page served at `https://extensions.quantumops.consulting/` by the hub (the stacks repo bundles a copy). GitHub Pages keeps serving upstream's `docs/` unchanged, so `docs/index.md` and `docs/_config.yml` stay 1:1 with upstream. Every link in the page is absolute.
+
+- The extension list and descriptions are static; add a row there (and to the description list) when a new `*.sysext/` appears. Fork-only extensions carry the "QuantumOps" badge.
+- `release_manifest.sh` writes `extensions.json` from the GitHub releases and uploads it with `--clobber` to the release tagged `manifest` (created with `--latest=false`; it has no `SHA256SUMS`, so `release_meta.sh` skips it). The hub proxies it as `/extensions/manifest.json`. It runs at the end of the `update-global-metadata` job in `release.yaml` and `update-all-metadata.yaml`.
+- Test: `tests/release_manifest_test.sh` (offline, fixture data).
 
 ---
 

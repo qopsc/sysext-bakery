@@ -1,0 +1,15 @@
+[
+ {"tag_name":"manifest","draft":false,"prerelease":false,"assets":[{"name":"extensions.json"}]},
+ {"tag_name":"SHA256SUMS","draft":false,"prerelease":false,"assets":[{"name":"SHA256SUMS"}]},
+ {"tag_name":"docker","draft":false,"prerelease":false,"assets":[{"name":"docker.conf"}]},
+ {"tag_name":"docker-29.9.0","draft":false,"prerelease":false,"assets":[{"name":"docker-29.9.0-x86-64.raw"},{"name":"docker-29.9.0-x86-64-build.log"}]},
+ {"tag_name":"docker-buildx-0.9.1","draft":false,"prerelease":false,"assets":[{"name":"docker-buildx-0.9.1-arm64.raw"},{"name":"docker-buildx-0.9.1-x86-64.raw"}]},
+ {"tag_name":"docker-buildx-0.10.0","draft":false,"prerelease":false,"assets":[{"name":"docker-buildx-0.10.0-arm64.raw"},{"name":"docker-buildx-0.10.0-x86-64.raw"},{"name":"docker-buildx-0.10.0-x86-64-build.log"}]},
+ {"tag_name":"tailscale-v1.9.0","draft":false,"prerelease":false,"assets":[{"name":"tailscale-v1.9.0-x86-64.raw"}]},
+ {"tag_name":"tailscale-v1.10.0","draft":false,"prerelease":false,"assets":[{"name":"tailscale-v1.10.0-arm64.raw"},{"name":"tailscale-v1.10.0-x86-64.raw"}]},
+ {"tag_name":"tailscale-v1.11.0-rc1","draft":false,"prerelease":false,"assets":[{"name":"tailscale-v1.11.0-rc1-x86-64.raw"}]},
+ {"tag_name":"tailscale-v1.11.0","draft":false,"prerelease":false,"assets":[{"name":"tailscale-v1.11.0-arm64.raw"}]},
+ {"tag_name":"tailscale-v2.0.0","draft":true,"prerelease":false,"assets":[]},
+ {"tag_name":"k3s-v1.33.13+k3s1","draft":false,"prerelease":false,"assets":[{"name":"k3s-v1.33.13+k3s1-x86-64.raw"}]},
+ {"tag_name":"k3s-v1.33.13+k3s2","draft":false,"prerelease":false,"assets":[{"name":"k3s-v1.33.13+k3s2-x86-64.raw"}]}
+]

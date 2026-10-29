@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QuantumOps Sysext Bakery</title>
+<meta name="description" content="System extensions for Flatcar Linux, built and hosted by QuantumOps. An expanded fork of flatcar/sysext-bakery.">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #f7f5fc; --panel: #ffffff; --line: #ddd8ea; --text: #1a1626; --muted: #5d5870;
+  --accent: #5a45d1; --accent-ink: #ffffff; --tint: #ebe7fb; --ash: #6f6a80;
+  --sans: "Archivo", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f0c17; --panel: #1a1626; --line: #302a40; --text: #f4f4f4; --muted: #a29dB0;
+    --accent: #b4a6ff; --accent-ink: #16112a; --tint: #241e35; --ash: #8a8697;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 1.0625rem/1.6 var(--sans); overflow-x: clip; }
+h1, h2, p, ul, pre { margin: 0; }
+h1, h2 { font-weight: 800; line-height: 1.05; letter-spacing: -0.025em; text-wrap: balance; }
+h1 { font-size: clamp(2.4rem, 1.2rem + 5vw, 4.5rem); }
+h1 span { display: block; }
+h1 .second { color: var(--ash); }
+h2 { font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.1rem); margin-bottom: 1rem; }
+p { text-wrap: pretty; }
+a { color: var(--accent); text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+code { overflow-wrap: anywhere; }
+code, pre, .mono { font-family: var(--mono); font-size: 0.9em; }
+.wrap { max-width: 72rem; margin-inline: auto; padding-inline: clamp(1rem, 4vw, 2.5rem); }
+.skip { position: absolute; left: -999px; }
+.skip:focus { left: 1rem; top: 1rem; background: var(--accent); color: var(--accent-ink); padding: .5rem .8rem; z-index: 9; }
+header.top { padding-block: 1.25rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-weight: 600; }
+header.top a { color: var(--text); text-decoration: none; }
+header.top nav { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+header.top nav a { color: var(--muted); }
+header.top nav a:hover { color: var(--accent); }
+.hero { padding-block: clamp(2.5rem, 1rem + 6vw, 6rem) clamp(2.5rem, 1rem + 5vw, 5rem); background: radial-gradient(60% 80% at 85% 30%, var(--tint), transparent 70%); }
+.lead { max-width: 40rem; margin-top: 1.5rem; font-size: 1.2rem; color: var(--muted); }
+.addr { margin-top: 2rem; display: block; width: fit-content; max-width: 100%; overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: .75rem 1rem; white-space: nowrap; }
+.addr b { color: var(--accent); font-weight: 600; }
+section { padding-block: clamp(2.5rem, 1.5rem + 4vw, 5rem); border-top: 1px solid var(--line); }
+.prose { max-width: 42rem; }
+.prose p + p { margin-top: 1rem; }
+.credit { margin-top: 1.5rem; border-left: 3px solid var(--accent); padding: .25rem 0 .25rem 1rem; max-width: 42rem; }
+.tools { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+.tools label { font-weight: 600; }
+input[type=search] { flex: 1 1 16rem; max-width: 26rem; font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--muted); border-radius: 6px; padding: .6rem .8rem; }
+#count { color: var(--muted); font-size: .95rem; }
+ul.list { list-style: none; padding: 0; border-top: 1px solid var(--line); }
+.ext { display: grid; grid-template-columns: 13rem 1fr auto; gap: .25rem 1.5rem; align-items: baseline; padding-block: .8rem; border-bottom: 1px solid var(--line); }
+.ext[hidden] { display: none; }
+.ext-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; font-family: var(--mono); font-weight: 600; }
+.ext-desc { color: var(--muted); }
+.ext-meta { display: flex; gap: 1rem; justify-content: flex-end; font-family: var(--mono); font-size: .85rem; min-width: 12rem; }
+.ver { font-weight: 600; color: var(--text); }
+.arch { color: var(--muted); }
+.badge { font: 600 .75rem/1 var(--sans); background: var(--accent); color: var(--accent-ink); padding: .25rem .5rem; border-radius: 99px; }
+.badge--soft { background: var(--tint); color: var(--accent); }
+.legend { margin-top: 1rem; color: var(--muted); font-size: .95rem; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: 2rem; }
+pre { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 1rem; overflow-x: auto; line-height: 1.5; margin-top: .75rem; }
+.grid2 h3 { margin: 0; font-size: 1.1rem; }
+footer { border-top: 1px solid var(--line); padding-block: 2rem 3rem; color: var(--muted); font-size: .95rem; }
+footer p + p { margin-top: .5rem; }
+@media (max-width: 52rem) {
+  .ext { grid-template-columns: 1fr; }
+  .ext-meta { justify-content: flex-start; min-width: 0; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#extensions">Skip to the extension list</a>
+<div class="wrap">
+  <header class="top">
+    <a href="https://quantumops.consulting/">QuantumOps</a>
+    <nav aria-label="Links">
+      <a href="https://github.com/qopsc/sysext-bakery">Source</a>
+      <a href="https://qopsc.github.io/sysext-bakery/">Documentation</a>
+      <a href="https://github.com/flatcar/sysext-bakery">Upstream</a>
+    </nav>
+  </header>
+</div>
+<main>
+<div class="hero"><div class="wrap">
+  <h1><span>Software for Flatcar,</span><span class="second">added without touching the OS.</span></h1>
+  <p class="lead">System extensions for Flatcar Linux, built and hosted by QuantumOps. Pick an extension, add one line to your node's config, and it installs and updates itself.</p>
+  <p class="addr mono"><span>https://extensions.quantumops.consulting</span><b>/extensions/</b><span>NAME.raw</span></p>
+</div></div>
+
+<section><div class="wrap">
+  <h2>What is a sysext?</h2>
+  <div class="prose">
+    <p>A systemd-sysext is a read-only disk image holding files for <code>/usr</code> (and optionally <code>/opt</code>). When it is merged, those files appear inside the running system as if they were installed, and unmerging removes them again. Nothing is written to the base OS.</p>
+    <p>Flatcar Linux has an immutable base system and no package manager, so sysexts are how you add tools such as Docker, Kubernetes or Tailscale. Each extension is self-contained and updates on its own schedule, separately from the OS. You enable one with a few lines of Ignition config at first boot, and <code>systemd-sysupdate</code> fetches new versions after that.</p>
+  </div>
+  <p class="credit">This is an <strong>expanded fork maintained by QuantumOps</strong> of <a href="https://github.com/flatcar/sysext-bakery">flatcar/sysext-bakery</a>. The build system and most extensions come from the Flatcar maintainers and community, and we are grateful for their work. We add extensions of our own and host the results on our own hub.</p>
+</div></section>
+
+<section id="extensions"><div class="wrap">
+  <h2>Extensions</h2>
+  <div class="tools">
+    <label for="q">Filter</label>
+    <input id="q" type="search" placeholder="Name or description" autocomplete="off">
+    <span id="count" role="status" aria-live="polite">43 extensions</span>
+  </div>
+  <ul class="list" id="list">
+<li class="ext" data-q="arcane web dashboard for managing docker containers, images and networks.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/arcane/">arcane</a><span class="badge" title="Not in flatcar/sysext-bakery">QuantumOps</span></div>
+  <p class="ext-desc">Web dashboard for managing Docker containers, images and networks.</p>
+  <div class="ext-meta"><span class="ver" data-ext="arcane">&mdash;</span><span class="arch" data-arch="arcane"></span></div>
+</li>
+<li class="ext" data-q="bird bird internet routing daemon (bgp, ospf and friends).">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/bird/">bird</a></div>
+  <p class="ext-desc">BIRD internet routing daemon (BGP, OSPF and friends).</p>
+  <div class="ext-meta"><span class="ver" data-ext="bird">&mdash;</span><span class="arch" data-arch="bird"></span></div>
+</li>
+<li class="ext" data-q="btop resource monitor for cpu, memory, disks, network and gpus.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/btop/">btop</a><span class="badge badge--soft" title="Upstream extension, rebuilt from source by QuantumOps for GPU support">Rebuilt</span></div>
+  <p class="ext-desc">Resource monitor for CPU, memory, disks, network and GPUs.</p>
+  <div class="ext-meta"><span class="ver" data-ext="btop">&mdash;</span><span class="arch" data-arch="btop"></span></div>
+</li>
+<li class="ext" data-q="chrony ntp client and server for keeping the clock accurate.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/chrony/">chrony</a></div>
+  <p class="ext-desc">NTP client and server for keeping the clock accurate.</p>
+  <div class="ext-meta"><span class="ver" data-ext="chrony">&mdash;</span><span class="arch" data-arch="chrony"></span></div>
+</li>
+<li class="ext" data-q="cilium command-line tool for installing and checking cilium networking on kubernetes.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/cilium/">cilium</a></div>
+  <p class="ext-desc">Command-line tool for installing and checking Cilium networking on Kubernetes.</p>
+  <div class="ext-meta"><span class="ver" data-ext="cilium">&mdash;</span><span class="arch" data-arch="cilium"></span></div>
+</li>
+<li class="ext" data-q="cloud-hypervisor virtual machine monitor for running lightweight vms.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/cloud-hypervisor/">cloud-hypervisor</a></div>
+  <p class="ext-desc">Virtual machine monitor for running lightweight VMs.</p>
+  <div class="ext-meta"><span class="ver" data-ext="cloud-hypervisor">&mdash;</span><span class="arch" data-arch="cloud-hypervisor"></span></div>
+</li>
+<li class="ext" data-q="coder self-hosted platform for cloud development environments.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/coder/">coder</a></div>
+  <p class="ext-desc">Self-hosted platform for cloud development environments.</p>
+  <div class="ext-meta"><span class="ver" data-ext="coder">&mdash;</span><span class="arch" data-arch="coder"></span></div>
+</li>
+<li class="ext" data-q="consul hashicorp service discovery and service mesh.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/consul/">consul</a></div>
+  <p class="ext-desc">HashiCorp service discovery and service mesh.</p>
+  <div class="ext-meta"><span class="ver" data-ext="consul">&mdash;</span><span class="arch" data-arch="consul"></span></div>
+</li>
+<li class="ext" data-q="containerd container runtime used by docker and kubernetes.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/containerd/">containerd</a></div>
+  <p class="ext-desc">Container runtime used by Docker and Kubernetes.</p>
+  <div class="ext-meta"><span class="ver" data-ext="containerd">&mdash;</span><span class="arch" data-arch="containerd"></span></div>
+</li>
+<li class="ext" data-q="crio cri-o, a container runtime built for kubernetes.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/crio/">crio</a></div>
+  <p class="ext-desc">CRI-O, a container runtime built for Kubernetes.</p>
+  <div class="ext-meta"><span class="ver" data-ext="crio">&mdash;</span><span class="arch" data-arch="crio"></span></div>
+</li>
+<li class="ext" data-q="dataplaneapi haproxy data plane api for configuring haproxy over rest.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/dataplaneapi/">dataplaneapi</a></div>
+  <p class="ext-desc">HAProxy Data Plane API for configuring HAProxy over REST.</p>
+  <div class="ext-meta"><span class="ver" data-ext="dataplaneapi">&mdash;</span><span class="arch" data-arch="dataplaneapi"></span></div>
+</li>
+<li class="ext" data-q="docker docker engine, the default container runtime on quantumops nodes.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/docker/">docker</a></div>
+  <p class="ext-desc">Docker engine, the default container runtime on QuantumOps nodes.</p>
+  <div class="ext-meta"><span class="ver" data-ext="docker">&mdash;</span><span class="arch" data-arch="docker"></span></div>
+</li>
+<li class="ext" data-q="docker-buildx docker plugin for advanced image builds.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/docker_buildx/">docker-buildx</a></div>
+  <p class="ext-desc">Docker plugin for advanced image builds.</p>
+  <div class="ext-meta"><span class="ver" data-ext="docker-buildx">&mdash;</span><span class="arch" data-arch="docker-buildx"></span></div>
+</li>
+<li class="ext" data-q="docker-compose docker plugin for running multi-container apps from one file.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/docker_compose/">docker-compose</a></div>
+  <p class="ext-desc">Docker plugin for running multi-container apps from one file.</p>
+  <div class="ext-meta"><span class="ver" data-ext="docker-compose">&mdash;</span><span class="arch" data-arch="docker-compose"></span></div>
+</li>
+<li class="ext" data-q="dust a more readable alternative to du for finding what fills a disk.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/dust/">dust</a><span class="badge" title="Not in flatcar/sysext-bakery">QuantumOps</span></div>
+  <p class="ext-desc">A more readable alternative to du for finding what fills a disk.</p>
+  <div class="ext-meta"><span class="ver" data-ext="dust">&mdash;</span><span class="arch" data-arch="dust"></span></div>
+</li>
+<li class="ext" data-q="eza a modern replacement for ls with colours, icons and git status.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/eza/">eza</a><span class="badge" title="Not in flatcar/sysext-bakery">QuantumOps</span></div>
+  <p class="ext-desc">A modern replacement for ls with colours, icons and git status.</p>
+  <div class="ext-meta"><span class="ver" data-ext="eza">&mdash;</span><span class="arch" data-arch="eza"></span></div>
+</li>
+<li class="ext" data-q="falco runtime security monitoring for containers and hosts.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/falco/">falco</a></div>
+  <p class="ext-desc">Runtime security monitoring for containers and hosts.</p>
+  <div class="ext-meta"><span class="ver" data-ext="falco">&mdash;</span><span class="arch" data-arch="falco"></span></div>
+</li>
+<li class="ext" data-q="haproxy fast, reliable tcp and http load balancer.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/haproxy/">haproxy</a></div>
+  <p class="ext-desc">Fast, reliable TCP and HTTP load balancer.</p>
+  <div class="ext-meta"><span class="ver" data-ext="haproxy">&mdash;</span><span class="arch" data-arch="haproxy"></span></div>
+</li>
+<li class="ext" data-q="ig inspektor gadget: ebpf tools for inspecting kubernetes and linux hosts.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/ig/">ig</a></div>
+  <p class="ext-desc">Inspektor Gadget: eBPF tools for inspecting Kubernetes and Linux hosts.</p>
+  <div class="ext-meta"><span class="ver" data-ext="ig">&mdash;</span><span class="arch" data-arch="ig"></span></div>
+</li>
+<li class="ext" data-q="iperf3 network speed and throughput measuring tool.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/iperf3/">iperf3</a><span class="badge" title="Not in flatcar/sysext-bakery">QuantumOps</span></div>
+  <p class="ext-desc">Network speed and throughput measuring tool.</p>
+  <div class="ext-meta"><span class="ver" data-ext="iperf3">&mdash;</span><span class="arch" data-arch="iperf3"></span></div>
+</li>
+<li class="ext" data-q="k3s lightweight kubernetes distribution in a single binary.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/k3s/">k3s</a></div>
+  <p class="ext-desc">Lightweight Kubernetes distribution in a single binary.</p>
+  <div class="ext-meta"><span class="ver" data-ext="k3s">&mdash;</span><span class="arch" data-arch="k3s"></span></div>
+</li>
+<li class="ext" data-q="kata-containers containers that run inside lightweight virtual machines.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/kata-containers/">kata-containers</a></div>
+  <p class="ext-desc">Containers that run inside lightweight virtual machines.</p>
+  <div class="ext-meta"><span class="ver" data-ext="kata-containers">&mdash;</span><span class="arch" data-arch="kata-containers"></span></div>
+</li>
+<li class="ext" data-q="keepalived floating ip addresses and failover between hosts (vrrp).">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/keepalived/">keepalived</a></div>
+  <p class="ext-desc">Floating IP addresses and failover between hosts (VRRP).</p>
+  <div class="ext-meta"><span class="ver" data-ext="keepalived">&mdash;</span><span class="arch" data-arch="keepalived"></span></div>
+</li>
+<li class="ext" data-q="kubernetes kubernetes node components: kubeadm, kubelet and kubectl.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/kubernetes/">kubernetes</a></div>
+  <p class="ext-desc">Kubernetes node components: kubeadm, kubelet and kubectl.</p>
+  <div class="ext-meta"><span class="ver" data-ext="kubernetes">&mdash;</span><span class="arch" data-arch="kubernetes"></span></div>
+</li>
+<li class="ext" data-q="llamaedge run open large language models locally on the node.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/llamaedge/">llamaedge</a></div>
+  <p class="ext-desc">Run open large language models locally on the node.</p>
+  <div class="ext-meta"><span class="ver" data-ext="llamaedge">&mdash;</span><span class="arch" data-arch="llamaedge"></span></div>
+</li>
+<li class="ext" data-q="nebula overlay network that links hosts across data centres and clouds.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/nebula/">nebula</a></div>
+  <p class="ext-desc">Overlay network that links hosts across data centres and clouds.</p>
+  <div class="ext-meta"><span class="ver" data-ext="nebula">&mdash;</span><span class="arch" data-arch="nebula"></span></div>
+</li>
+<li class="ext" data-q="neovim neovim text editor, installed as nvim.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/neovim/">neovim</a><span class="badge" title="Not in flatcar/sysext-bakery">QuantumOps</span></div>
+  <p class="ext-desc">Neovim text editor, installed as nvim.</p>
+  <div class="ext-meta"><span class="ver" data-ext="neovim">&mdash;</span><span class="arch" data-arch="neovim"></span></div>
+</li>
+<li class="ext" data-q="nerdctl docker-compatible command line for containerd.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/nerdctl/">nerdctl</a></div>
+  <p class="ext-desc">Docker-compatible command line for containerd.</p>
+  <div class="ext-meta"><span class="ver" data-ext="nerdctl">&mdash;</span><span class="arch" data-arch="nerdctl"></span></div>
+</li>
+<li class="ext" data-q="netbird wireguard-based mesh vpn client.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/netbird/">netbird</a><span class="badge" title="Not in flatcar/sysext-bakery yet (proposed upstream)">QuantumOps</span></div>
+  <p class="ext-desc">WireGuard-based mesh VPN client.</p>
+  <div class="ext-meta"><span class="ver" data-ext="netbird">&mdash;</span><span class="arch" data-arch="netbird"></span></div>
+</li>
+<li class="ext" data-q="nomad hashicorp workload scheduler for containers and plain programs.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/nomad/">nomad</a></div>
+  <p class="ext-desc">HashiCorp workload scheduler for containers and plain programs.</p>
+  <div class="ext-meta"><span class="ver" data-ext="nomad">&mdash;</span><span class="arch" data-arch="nomad"></span></div>
+</li>
+<li class="ext" data-q="nvidia-runtime nvidia container runtime and tools (the kernel module is not included).">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/nvidia_runtime/">nvidia-runtime</a></div>
+  <p class="ext-desc">NVIDIA container runtime and tools (the kernel module is not included).</p>
+  <div class="ext-meta"><span class="ver" data-ext="nvidia-runtime">&mdash;</span><span class="arch" data-arch="nvidia-runtime"></span></div>
+</li>
+<li class="ext" data-q="ollama run and serve large language models on the node.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/ollama/">ollama</a></div>
+  <p class="ext-desc">Run and serve large language models on the node.</p>
+  <div class="ext-meta"><span class="ver" data-ext="ollama">&mdash;</span><span class="arch" data-arch="ollama"></span></div>
+</li>
+<li class="ext" data-q="opkssh ssh logins using single sign-on instead of long-lived keys.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/opkssh/">opkssh</a></div>
+  <p class="ext-desc">SSH logins using single sign-on instead of long-lived keys.</p>
+  <div class="ext-meta"><span class="ver" data-ext="opkssh">&mdash;</span><span class="arch" data-arch="opkssh"></span></div>
+</li>
+<li class="ext" data-q="restic fast, encrypted, deduplicated backups.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/restic/">restic</a><span class="badge" title="Not in flatcar/sysext-bakery">QuantumOps</span></div>
+  <p class="ext-desc">Fast, encrypted, deduplicated backups.</p>
+  <div class="ext-meta"><span class="ver" data-ext="restic">&mdash;</span><span class="arch" data-arch="restic"></span></div>
+</li>
+<li class="ext" data-q="rke2 rancher&#x27;s hardened kubernetes distribution.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/rke2/">rke2</a></div>
+  <p class="ext-desc">Rancher&#x27;s hardened Kubernetes distribution.</p>
+  <div class="ext-meta"><span class="ver" data-ext="rke2">&mdash;</span><span class="arch" data-arch="rke2"></span></div>
+</li>
+<li class="ext" data-q="scx sched-ext cpu schedulers for the linux kernel.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/scx/">scx</a></div>
+  <p class="ext-desc">sched-ext CPU schedulers for the Linux kernel.</p>
+  <div class="ext-meta"><span class="ver" data-ext="scx">&mdash;</span><span class="arch" data-arch="scx"></span></div>
+</li>
+<li class="ext" data-q="sqlite sqlite command-line shell and library.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/sqlite/">sqlite</a><span class="badge" title="Not in flatcar/sysext-bakery">QuantumOps</span></div>
+  <p class="ext-desc">SQLite command-line shell and library.</p>
+  <div class="ext-meta"><span class="ver" data-ext="sqlite">&mdash;</span><span class="arch" data-arch="sqlite"></span></div>
+</li>
+<li class="ext" data-q="tailscale tailscale mesh vpn client.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/tailscale/">tailscale</a></div>
+  <p class="ext-desc">Tailscale mesh VPN client.</p>
+  <div class="ext-meta"><span class="ver" data-ext="tailscale">&mdash;</span><span class="arch" data-arch="tailscale"></span></div>
+</li>
+<li class="ext" data-q="tilde console text editor with ordinary menus and shortcuts.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/tilde/">tilde</a></div>
+  <p class="ext-desc">Console text editor with ordinary menus and shortcuts.</p>
+  <div class="ext-meta"><span class="ver" data-ext="tilde">&mdash;</span><span class="arch" data-arch="tilde"></span></div>
+</li>
+<li class="ext" data-q="vault hashicorp secrets management.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/vault/">vault</a></div>
+  <p class="ext-desc">HashiCorp secrets management.</p>
+  <div class="ext-meta"><span class="ver" data-ext="vault">&mdash;</span><span class="arch" data-arch="vault"></span></div>
+</li>
+<li class="ext" data-q="wasmcloud run webassembly workloads across hosts.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/wasmcloud/">wasmcloud</a></div>
+  <p class="ext-desc">Run WebAssembly workloads across hosts.</p>
+  <div class="ext-meta"><span class="ver" data-ext="wasmcloud">&mdash;</span><span class="arch" data-arch="wasmcloud"></span></div>
+</li>
+<li class="ext" data-q="wasmedge webassembly runtime for cloud and edge.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/wasmedge/">wasmedge</a></div>
+  <p class="ext-desc">WebAssembly runtime for cloud and edge.</p>
+  <div class="ext-meta"><span class="ver" data-ext="wasmedge">&mdash;</span><span class="arch" data-arch="wasmedge"></span></div>
+</li>
+<li class="ext" data-q="wasmtime standalone webassembly runtime.">
+  <div class="ext-name"><a href="https://qopsc.github.io/sysext-bakery/wasmtime/">wasmtime</a></div>
+  <p class="ext-desc">Standalone WebAssembly runtime.</p>
+  <div class="ext-meta"><span class="ver" data-ext="wasmtime">&mdash;</span><span class="arch" data-arch="wasmtime"></span></div>
+</li>
+  </ul>
+  <p id="none" class="legend" hidden>No extension matches that. Try a shorter word.</p>
+  <p class="legend"><span class="badge">QuantumOps</span> is only in this fork. <span class="badge badge--soft">Rebuilt</span> is an upstream extension that we build from source. Versions come from our <a href="https://github.com/qopsc/sysext-bakery/releases">releases</a> and show a dash if they cannot be loaded.</p>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Use it on a node</h2>
+  <div class="prose"><p>Replace <code>NAME</code> with an extension from the list. Ignition downloads the image at first boot. The extra sysupdate files let the node check this hub for new versions. See each extension's documentation for the full snippet.</p></div>
+  <div class="grid2" style="margin-top:1.5rem">
+    <div><h3>Install an extension</h3>
+<pre>storage:
+  files:
+    - path: /opt/extensions/NAME/NAME-1.2.3-x86-64.raw
+      contents:
+        source: https://extensions.quantumops.consulting/extensions/NAME-1.2.3-x86-64.raw
+  links:
+    - path: /etc/extensions/NAME.raw
+      target: /opt/extensions/NAME/NAME-1.2.3-x86-64.raw</pre></div>
+    <div><h3>Allow updates to run</h3>
+      <p style="margin-top:.5rem;color:var(--muted)">systemd-sysupdate refuses to start when <code>/etc/sysupdate.d</code> is empty. This one placeholder file fixes that.</p>
+<pre>storage:
+  files:
+    - path: /etc/sysupdate.d/noop.conf
+      contents:
+        source: https://extensions.quantumops.consulting/extensions/noop.conf</pre></div>
+  </div>
+  <p class="legend">Each extension also has its own update file at <code class="mono">https://extensions.quantumops.consulting/extensions/NAME.conf</code>, and the version list for this page is <a href="https://extensions.quantumops.consulting/extensions/manifest.json">manifest.json</a>.</p>
+</div></section>
+</main>
+<footer><div class="wrap">
+  <p>Built from <a href="https://github.com/qopsc/sysext-bakery">qopsc/sysext-bakery</a>, a fork of <a href="https://github.com/flatcar/sysext-bakery">flatcar/sysext-bakery</a> (Apache 2.0). Flatcar is a trademark of its owners; QuantumOps is not part of the Flatcar project.</p>
+  <p>Upstream's own table of extensions is at <a href="https://qopsc.github.io/sysext-bakery/">qopsc.github.io/sysext-bakery</a>.</p>
+</div></footer>
+<script>
+(function () {
+  var q = document.getElementById('q'), rows = [].slice.call(document.querySelectorAll('.ext')),
+      count = document.getElementById('count'), none = document.getElementById('none');
+  q.addEventListener('input', function () {
+    var t = q.value.trim().toLowerCase(), n = 0;
+    rows.forEach(function (r) { var ok = !t || r.getAttribute('data-q').indexOf(t) !== -1; r.hidden = !ok; if (ok) n++; });
+    count.textContent = n + (n === 1 ? ' extension' : ' extensions');
+    none.hidden = n !== 0;
+  });
+  // Versions are optional extras: any failure leaves the dashes in place.
+  fetch('https://extensions.quantumops.consulting/extensions/manifest.json')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (m) {
+      if (!m || !Array.isArray(m.extensions)) return;
+      m.extensions.forEach(function (e) {
+        var v = document.querySelector('.ver[data-ext="' + e.name + '"]'),
+            a = document.querySelector('.arch[data-arch="' + e.name + '"]');
+        if (v && e.latest) v.textContent = e.latest;
+        if (a && e.arches && e.arches.length) a.textContent = e.arches.join(' ');
+      });
+    })
+    .catch(function () {});
+})();
+</script>
+</body>
+</html>
