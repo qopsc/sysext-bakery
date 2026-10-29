@@ -25,11 +25,11 @@ storage:
       contents:
     - path: /etc/sysupdate.keepalived.d/keepalived.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/keepalived.conf
+        source: https://extensions.quantumops.consulting/extensions/keepalived.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
-        source: https://extensions.flatcar.org/extensions/keepalived-v2.3.1-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/keepalived-v2.3.1-x86-64.raw
 
   links:
     - target: /opt/extensions/keepalived/keepalived-v2.3.1-x86-64.raw

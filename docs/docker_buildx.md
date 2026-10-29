@@ -23,13 +23,13 @@ storage:
     - path: /opt/extensions/docker-buildx/docker-buildx-0.25.0-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/docker-buildx-0.25.0-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/docker-buildx-0.25.0-x86-64.raw
     - path: /etc/sysupdate.docker-buildx.d/docker-buildx.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/docker-buildx.conf
+        source: https://extensions.quantumops.consulting/extensions/docker-buildx.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
   links:
     - target: /opt/extensions/docker-buildx/docker-buildx-0.25.0-x86-64.raw
       path: /etc/extensions/docker-buildx.raw

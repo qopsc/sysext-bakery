@@ -126,7 +126,7 @@ storage:
     - path: /etc/extensions/EXTNAME.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/EXTNAME.raw
+        source: https://extensions.quantumops.consulting/extensions/EXTNAME.raw
 ```
 That's it!
 
@@ -144,7 +144,7 @@ storage:
     - path: /opt/extensions/EXTNAME/EXTNAME-3.13.5-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/EXTNAME-3.13.5-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/EXTNAME-3.13.5-x86-64.raw
   links:
     - target: /opt/extensions/EXTNAME/EXTNAME-3.13.5-x86-64.raw
       path: /etc/extensions/EXTNAME.raw
@@ -172,7 +172,7 @@ Verify=false
 
 [Source]
 Type=url-file
-Path=https://extensions.flatcar.org/extensions/EXTNAME
+Path=https://extensions.quantumops.consulting/extensions/EXTNAME
 MatchPattern=EXTNAME-@v-%a.raw
 
 [Target]
@@ -228,7 +228,7 @@ storage:
     - path: /opt/extensions/EXTNAME/EXTNAME-3.13.5-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/EXTNAME-3.13.5-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/EXTNAME-3.13.5-x86-64.raw
     - path: /etc/sysupdate.EXTNAME.d/EXTNAME.conf
       contents:
         inline: |
@@ -237,7 +237,7 @@ storage:
 
           [Source]
           Type=url-file
-          Path=https://extensions.flatcar.org/extensions/EXTNAME
+          Path=https://extensions.quantumops.consulting/extensions/EXTNAME
           MatchPattern=EXTNAME-@v-%a.raw
 
           [Target]
@@ -284,7 +284,7 @@ Also, we include a dummy `noop.conf` for systemd-sysupdate to work around a spur
 ### Where are bakery extension images hosted?
 
 Bakery extension images are hosted directly on the GitHub repository.
-We provide https://extensions.flatcar.org as a convenience wrapper - it will redirect to the respective extension release on GitHub.
+This fork provides https://extensions.quantumops.consulting as a convenience wrapper - it will redirect to the respective extension release on GitHub.
 For a deep dive, please refer to the [Bakery developer documentation](https://github.com/flatcar/sysext-bakery?tab=readme-ov-file#releases-structure-in-the-bakery).
 for details on the redirect wrappper's interaction with systemd-sysupdate.
 While understanding the redirect wrapper might be interesting for curious developers, it's not a requirement for using extension images.

@@ -28,13 +28,13 @@ storage:
     - path: /opt/extensions/docker/docker-28.0.4-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/docker-28.0.4-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/docker-28.0.4-x86-64.raw
     - path: /etc/sysupdate.docker.d/docker.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/docker.conf
+        source: https://extensions.quantumops.consulting/extensions/docker.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
   links:
     - target: /opt/extensions/docker/docker-28.0.4-x86-64.raw
       path: /etc/extensions/docker.raw

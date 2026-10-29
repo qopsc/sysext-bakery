@@ -20,13 +20,13 @@ storage:
     - path: /opt/extensions/chrony/chrony-4.8-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/chrony-4.8-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/chrony-4.8-x86-64.raw
     - path: /etc/sysupdate.chrony.d/chrony.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/chrony/chrony.conf
+        source: https://extensions.quantumops.consulting/extensions/chrony/chrony.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
     - path: /etc/chrony/chrony.conf
       mode: 0644
       contents:

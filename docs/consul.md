@@ -24,10 +24,10 @@ storage:
     - path: /opt/extensions/consul/consul-1.21.4-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/consul-1.21.4-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/consul-1.21.4-x86-64.raw
     - path: /etc/sysupdate.consul.d/consul.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/consul.conf
+        source: https://extensions.quantumops.consulting/extensions/consul.conf
   links:
     - path: /etc/systemd/system/multi-user.target.wants/consul.service
       target: /usr/local/lib/systemd/system/consul.service

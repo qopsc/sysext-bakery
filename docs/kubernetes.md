@@ -37,13 +37,13 @@ storage:
   files:
     - path: /etc/sysupdate.kubernetes.d/kubernetes-v1.32.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/kubernetes/kubernetes-v1.32.conf
+        source: https://extensions.quantumops.consulting/extensions/kubernetes/kubernetes-v1.32.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
     - path: /opt/extensions/kubernetes/kubernetes-v1.32.2-x86-64.raw
       contents:
-        source: https://extensions.flatcar.org/extensions/kubernetes-v1.32.2-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/kubernetes-v1.32.2-x86-64.raw
 systemd:
   units:
     - name: systemd-sysupdate.timer

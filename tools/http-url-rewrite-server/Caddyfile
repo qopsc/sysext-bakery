@@ -60,6 +60,10 @@ extensions.quantumops.consulting {
 	@sha path_regexp sha ^/extensions/SHA256SUMS$
 	redir @sha {vars.base_dest_url}/SHA256SUMS/SHA256SUMS
 
+	# The bare directory has no page on the project site (it 404s there); send it to the overview.
+	@extdir path_regexp extdir ^/extensions/?$
+	redir @extdir https://qopsc.github.io/sysext-bakery/
+
 	# None of the above matched, redirect to the website.
 	redir https://qopsc.github.io/sysext-bakery{uri}
 }

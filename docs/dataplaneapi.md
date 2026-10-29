@@ -98,20 +98,20 @@ storage:
     - path: /opt/extensions/dataplaneapi/dataplaneapi-v3.3.5-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/dataplaneapi-v3.3.5-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/dataplaneapi-v3.3.5-x86-64.raw
     - path: /etc/sysupdate.dataplaneapi.d/dataplaneapi.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/dataplaneapi.conf
+        source: https://extensions.quantumops.consulting/extensions/dataplaneapi.conf
     - path: /opt/extensions/haproxy/haproxy-3.2.5-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/haproxy-3.2.5-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/haproxy-3.2.5-x86-64.raw
     - path: /etc/sysupdate.haproxy.d/haproxy.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/haproxy.conf
+        source: https://extensions.quantumops.consulting/extensions/haproxy.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
     - path: /etc/haproxy/haproxy.cfg
       mode: 0644
       contents:

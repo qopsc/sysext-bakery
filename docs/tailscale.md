@@ -30,13 +30,13 @@ storage:
     - path: /opt/extensions/tailscale/tailscale-v1.80.3-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/tailscale-v1.80.3-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/tailscale-v1.80.3-x86-64.raw
     - path: /etc/sysupdate.tailscale.d/tailscale.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/tailscale.conf
+        source: https://extensions.quantumops.consulting/extensions/tailscale.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
   links:
     - path: /etc/systemd/system/multi-user.target.wants/tailscaled.service
       target: /usr/local/lib/systemd/system/tailscaled.service

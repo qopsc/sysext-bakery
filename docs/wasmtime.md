@@ -29,13 +29,13 @@ storage:
   files:
     - path: /opt/extensions/wasmtime/wasmtime-v31.0.0-x86-64.raw
       contents:
-        source: https://extensions.flatcar.org/extensions/wasmtime-v31.0.0-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/wasmtime-v31.0.0-x86-64.raw
     - path: /etc/sysupdate.wasmtime.d/wasmtime.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/wasmtime.conf
+        source: https://extensions.quantumops.consulting/extensions/wasmtime.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-      source: https://extensions.flatcar.org/extensions/noop.conf
+      source: https://extensions.quantumops.consulting/extensions/noop.conf
  
 systemd:
   units:

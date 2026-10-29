@@ -44,13 +44,13 @@ storage:
     - path: /opt/extensions/coder/coder-v2.34.4-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/coder-v2.34.4-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/coder-v2.34.4-x86-64.raw
     - path: /etc/sysupdate.coder.d/coder.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/coder.conf
+        source: https://extensions.quantumops.consulting/extensions/coder.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
     - path: /etc/coder.d/coder.env
       mode: 0600
       contents:

@@ -35,13 +35,13 @@ storage:
     - path: /opt/extensions/cloud-hypervisor/cloud-hypervisor-v44.0-x86-64.raw
       mode: 0644
       contents:
-        source: https://extensions.flatcar.org/extensions/cloud-hypervisor-v44.0-x86-64.raw
+        source: https://extensions.quantumops.consulting/extensions/cloud-hypervisor-v44.0-x86-64.raw
     - path: /etc/sysupdate.cloud-hypervisor.d/cloud-hypervisor.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/cloud-hypervisor.conf
+        source: https://extensions.quantumops.consulting/extensions/cloud-hypervisor.conf
     - path: /etc/sysupdate.d/noop.conf
       contents:
-        source: https://extensions.flatcar.org/extensions/noop.conf
+        source: https://extensions.quantumops.consulting/extensions/noop.conf
   links:
     - target: /opt/extensions/cloud-hypervisor/cloud-hypervisor-v44.0-x86-64.raw
       path: /etc/extensions/cloud-hypervisor.raw
