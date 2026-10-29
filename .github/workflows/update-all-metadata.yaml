@@ -120,3 +120,11 @@ jobs:
           body_path: bakery/Release.md
           files: |
             bakery/SHA256SUMS
+
+      # qopsc fork: publish extensions.json (landing-page version manifest).
+      - name: Update version manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pushd bakery
+          ./release_manifest.sh
