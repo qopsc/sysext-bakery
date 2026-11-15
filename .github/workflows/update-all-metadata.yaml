@@ -18,7 +18,7 @@ on:
 
 jobs:
   list-extensions:
-    runs-on: namespace-profile-linux-amd64-4c-8g-u24
+    runs-on: [self-hosted, linux, x64]
     outputs:
       extensions: ${{ steps.list.outputs.extensions }}
     steps:
@@ -50,7 +50,7 @@ jobs:
     strategy:
       matrix:
         extension: ${{ fromJson(needs.list-extensions.outputs.extensions) }}
-    runs-on: namespace-profile-linux-amd64-4c-8g-u24
+    runs-on: [self-hosted, linux, x64]
     permissions:
       # allow the action to create a release
       contents: write
@@ -87,7 +87,7 @@ jobs:
 
   update-global-metadata:
     needs: update-extension-metadata
-    runs-on: namespace-profile-linux-amd64-4c-8g-u24
+    runs-on: [self-hosted, linux, x64]
     permissions:
       # allow the action to create a release
       contents: write

@@ -5,11 +5,11 @@ name: Rebuild a published sysext release
 # script or bundled unit change (e.g. arcane v2.9.0 after the agent-unit
 # env-default patch).
 #
-# qopsc fork (patch #23): builds run natively per architecture on Namespace
-# runners. Each arch leg stages its .raw/log/partial sums as a Namespace
-# artefact; the publish job joins both arches, tags, and recreates the
-# GitHub release. GitHub Releases remain the distribution (see
-# 2026-10-16-namespace-migration-design.md).
+# qopsc fork (patch #23): every job runs on the self-hosted amd64 runner;
+# arm64 legs build under QEMU user emulation. Each arch leg stages its
+# .raw/log/partial sums in a host directory; the publish job joins both
+# arches, tags, and recreates the GitHub release. GitHub Releases remain the
+# distribution (see 2026-10-16-namespace-migration-design.md).
 on:
   workflow_dispatch:
     inputs:
@@ -35,9 +35,12 @@ on:
 permissions:
   contents: read
 
+env:
+  SYSEXT_STAGING_ROOT: /var/lib/sysext-ci
+
 jobs:
   list-rebuilds:
-    runs-on: namespace-profile-linux-amd64-4c-8g-u24
+    runs-on: [self-hosted, linux, x64]
     outputs:
       builds: ${{ steps.list.outputs.builds }}
       extensions: ${{ steps.list.outputs.extensions }}
@@ -65,6 +68,12 @@ jobs:
           pushd bakery
           ./rebuild_dispatcher.sh
 
+      - name: prune stale staging directories
+        run: |
+          set -euxo pipefail
+          sudo install -d -o "$(id -u)" -g "$(id -g)" "${SYSEXT_STAGING_ROOT}"
+          find "${SYSEXT_STAGING_ROOT}" -mindepth 1 -maxdepth 1 -type d -mtime +3 -exec rm -rf {} +
+
   build:
     needs: list-rebuilds
     if: ${{ needs.list-rebuilds.outputs.builds != '[]' && needs.list-rebuilds.outputs.builds != '' }}
@@ -74,7 +83,7 @@ jobs:
         release: ${{ fromJson(needs.list-rebuilds.outputs.builds) }}
         arch: [x86-64, arm64]
     continue-on-error: false
-    runs-on: ${{ matrix.arch == 'arm64' && 'namespace-profile-linux-arm64-4c-8g-u24' || 'namespace-profile-linux-amd64-4c-8g-u24' }}
+    runs-on: [self-hosted, linux, x64]
     steps:
       - name: Check out the bakery repo
         uses: actions/checkout@v4
@@ -91,6 +100,12 @@ jobs:
             squashfs-tools \
             xz-utils \
             erofs-utils
+
+      - name: register arm64 QEMU binfmt handler
+        if: ${{ matrix.arch == 'arm64' }}
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
 
       - name: build one architecture
         env:
@@ -114,18 +129,22 @@ jobs:
           echo "name=${extension}-${version}-${ARCH}" >> "${GITHUB_OUTPUT}"
           echo "base=${extension}-${version}" >> "${GITHUB_OUTPUT}"
 
-      - name: stage build artefacts (Namespace)
-        uses: namespace-actions/upload-artifact@v1
-        with:
-          name: ${{ steps.artefact.outputs.name }}
-          path: |
-            bakery/${{ steps.artefact.outputs.base }}-${{ matrix.arch }}.raw
-            bakery/${{ steps.artefact.outputs.base }}-${{ matrix.arch }}-build.log
-            bakery/SHA256SUMS.${{ matrix.arch }}
-            bakery/*.conf
-          compression-level: 0
-          retention-days: 1
-          if-no-files-found: error
+      - name: stage build artefacts (host directory)
+        env:
+          NAME: ${{ steps.artefact.outputs.name }}
+          BASE: ${{ steps.artefact.outputs.base }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euxo pipefail
+          sudo install -d -o "$(id -u)" -g "$(id -g)" "${SYSEXT_STAGING_ROOT}"
+          dest="${SYSEXT_STAGING_ROOT}/${GITHUB_RUN_ID}/${NAME}"
+          rm -rf "${dest}"
+          mkdir -p "${dest}"
+          cp "bakery/${BASE}-${ARCH}.raw" \
+             "bakery/${BASE}-${ARCH}-build.log" \
+             "bakery/SHA256SUMS.${ARCH}" \
+             bakery/*.conf \
+             "${dest}/"
 
   publish-release:
     needs: [list-rebuilds, build]
@@ -134,7 +153,7 @@ jobs:
       fail-fast: false
       matrix:
         release: ${{ fromJson(needs.list-rebuilds.outputs.builds) }}
-    runs-on: namespace-profile-linux-amd64-4c-8g-u24
+    runs-on: [self-hosted, linux, x64]
     permissions:
       contents: write
     steps:
@@ -155,13 +174,6 @@ jobs:
           echo "base=${extension}-${version}" >> "${GITHUB_OUTPUT}"
           echo "extension=${extension}" >> "${GITHUB_OUTPUT}"
 
-      - name: download both architecture artefacts
-        uses: namespace-actions/download-artifact@v2
-        with:
-          pattern: ${{ steps.artefact.outputs.base }}-*
-          path: staging
-          merge-multiple: false
-
       - name: join arches and tag
         id: build
         env:
@@ -169,10 +181,11 @@ jobs:
           BASE: ${{ steps.artefact.outputs.base }}
         run: |
           set -euxo pipefail
-          cp "staging/${BASE}-x86-64/"* bakery/
-          cp "staging/${BASE}-arm64/${BASE}-arm64.raw" bakery/
-          cp "staging/${BASE}-arm64/${BASE}-arm64-build.log" bakery/
-          cp "staging/${BASE}-arm64/SHA256SUMS.arm64" bakery/
+          staging="${SYSEXT_STAGING_ROOT}/${GITHUB_RUN_ID}"
+          cp "${staging}/${BASE}-x86-64/"* bakery/
+          cp "${staging}/${BASE}-arm64/${BASE}-arm64.raw" bakery/
+          cp "${staging}/${BASE}-arm64/${BASE}-arm64-build.log" bakery/
+          cp "${staging}/${BASE}-arm64/SHA256SUMS.arm64" bakery/
           pushd bakery
           ./release.sh "${RELEASE_SPEC}" --join
 
@@ -201,6 +214,17 @@ jobs:
             bakery/*.conf
             bakery/*-build.log
 
+      # Only on success: a failed publish keeps its staging so the job can be
+      # re-run. list-rebuilds prunes anything older than three days.
+      - name: remove staged artefacts
+        env:
+          BASE: ${{ steps.artefact.outputs.base }}
+        run: |
+          set -euxo pipefail
+          staging="${SYSEXT_STAGING_ROOT}/${GITHUB_RUN_ID}"
+          rm -rf "${staging}/${BASE}-x86-64" "${staging}/${BASE}-arm64"
+          rmdir --ignore-fail-on-non-empty "${staging}"
+
   update-extension-metadata:
     needs: [list-rebuilds, publish-release]
     if: ${{ needs.list-rebuilds.outputs.extensions != '[]' && needs.list-rebuilds.outputs.extensions != '' }}
@@ -209,7 +233,7 @@ jobs:
       matrix:
         extension: ${{ fromJson(needs.list-rebuilds.outputs.extensions) }}
     continue-on-error: true
-    runs-on: namespace-profile-linux-amd64-4c-8g-u24
+    runs-on: [self-hosted, linux, x64]
     permissions:
       contents: write
     steps:
@@ -250,7 +274,7 @@ jobs:
   update-global-metadata:
     needs: [list-rebuilds, update-extension-metadata]
     if: ${{ needs.list-rebuilds.outputs.extensions != '[]' && needs.list-rebuilds.outputs.extensions != '' }}
-    runs-on: namespace-profile-linux-amd64-4c-8g-u24
+    runs-on: [self-hosted, linux, x64]
     permissions:
       contents: write
     steps:

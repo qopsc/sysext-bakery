@@ -39,7 +39,7 @@ The fork's divergence from `flatcar/main` is **twenty-five permanent patches** p
 | 20 | tilde documentation | `docs/tilde.md`, `docs/index.md` tilde row | docs |
 | 21 | restic extension | `restic.sysext/**`, `docs/restic.md`, `docs/index.md` restic row, `release_build_versions.txt` restic lines | policy |
 | 22 | Chrony numeric-tag listing | `chrony.sysext/create.sh` | upstream bugfix |
-| 23 | Namespace runners + native per-arch builds | `.github/workflows/{release,rebuild,update-all-metadata,report-missing-extension-docs}.yaml`, `release.sh`, `2026-10-16-namespace-migration-design.md` | policy |
+| 23 | Self-hosted runner + per-arch builds | `.github/workflows/{release,rebuild,update-all-metadata,report-missing-extension-docs}.yaml`, `release.sh`, `2026-10-16-namespace-migration-design.md` | policy |
 | 24 | Docs point at the fork hub | `docs/*.md` except `docs/netbird.md` (`extensions.flatcar.org` → `extensions.quantumops.consulting`) | policy |
 | 25 | Hub landing page + version manifest | `html/**`, `release_manifest.sh`, `tests/release_manifest_test.sh`, `tests/fixtures/gh-releases.json`, manifest steps in `.github/workflows/{release,update-all-metadata}.yaml` | policy |
 
@@ -320,20 +320,22 @@ Chrony's GitLab repo tags stable releases as `4.9` but also ships `-pre` tags an
 - Do not drop the `sort -Vr` in `list_gitlab_tags` to paper over this; the sort is correct once the list is real versions.
 - If upstream ever filters the same way, this patch disappears on rebase.
 
-### 23. Namespace runners + native per-arch builds
+### 23. Self-hosted runner + per-arch builds
 
-**Files**: `.github/workflows/release.yaml`, `.github/workflows/rebuild.yaml`, `.github/workflows/update-all-metadata.yaml`, `.github/workflows/report-missing-extension-docs.yaml`, `release.sh` (`--arch`/`--join` modes), and the design record `2026-10-16-namespace-migration-design.md`.
+**Files**: `.github/workflows/release.yaml`, `.github/workflows/rebuild.yaml`, `.github/workflows/update-all-metadata.yaml`, `.github/workflows/report-missing-extension-docs.yaml`, `release.sh` (`--arch`/`--join` modes), and the design record `2026-10-16-namespace-migration-design.md` (historical: the Namespace-runner phase this replaced).
 
-All CI runs on Namespace runners (Namespace is a runner *backend* for GitHub Actions, not a replacement). Each extension builds natively per architecture and a publish job joins the two arches. This exists because the org is on GitHub's Free plan: private-repo jobs burned the shared 2,000 included GitHub-hosted minutes/month (the "2000/2000" wall), and metered GitHub minutes/artifacts/Packages storage are what must stay at zero. **Fork-local policy, deliberately not upstreamed** — upstream has no Namespace account. Background: the design doc.
+All CI runs on one self-hosted amd64 runner at `142.248.82.217`, registered on `qopsc/sysext-bakery` with the default labels `[self-hosted, linux, x64]`. Each extension builds one leg per architecture; arm64 legs run under QEMU user emulation; a publish job joins the two arches. This exists because the org is on GitHub's Free plan: metered GitHub-hosted minutes, artifact storage and Packages storage must stay at zero. Self-hosted runner minutes are free, which is also why the fork moved off Namespace (2026-11-15). **Fork-local policy, deliberately not upstreamed.**
 
 **Rules**:
-- `runs-on` is always `namespace-profile-linux-amd64-4c-8g-u24` or `namespace-profile-linux-arm64-4c-8g-u24` (build legs pick by `matrix.arch`). Never reintroduce `ubuntu-*` GitHub-hosted labels or `docker/setup-qemu-action`: arm64 builds natively. On upstream conflicts take upstream's workflow, then re-apply the labels, arch matrix, staging and publish-join structure.
+- `runs-on` is always `[self-hosted, linux, x64]`. Use these labels in place of `ubuntu-*` GitHub-hosted labels (metered) or `namespace-profile-*` labels (retired). On upstream conflicts take upstream's workflow, then re-apply the labels, arch matrix, QEMU step, staging and publish-join structure.
+- arm64 build legs register QEMU via `docker/setup-qemu-action@v3` (`if: matrix.arch == 'arm64'`). Native-arch version checks in the bake scripts already skip on a foreign arch. Expect arm64 legs to be several times slower than native.
+- The runner host needs Debian/Ubuntu, passwordless `sudo` for the runner user (the workflows `apt install` prerequisites), and Docker usable by the runner user. Matrix jobs queue serially on a single runner instance. To run legs in parallel, register more runner instances on the same host; the staging directory is shared.
 - `release.sh` contract: `--arch <arch>` builds one arch, writes `SHA256SUMS.<arch>`, and does **not** tag; `--join` assembles both arches' artefacts, writes the final `SHA256SUMS`/`Release.md`, and tags **once**. The legacy no-arg mode stays for local parity with upstream.
-- Staging between build and publish uses `namespace-actions/upload-artifact@v1` / `download-artifact@v2` (`retention-days: 1`, `compression-level: 0`). Never `actions/upload-artifact`: GitHub artifact storage is metered org-wide.
+- Staging between build and publish is the host directory `${SYSEXT_STAGING_ROOT}/<run_id>/<extension>-<version>-<arch>/` (`/var/lib/sysext-ci`, set as workflow `env`). It only works because every job runs on the same host. The publish job deletes its staging only after the release is created, so a failed publish can be re-run. `list-builds`/`list-rebuilds` prune run directories older than three days. Keep `actions/upload-artifact` out of the workflows: GitHub artifact storage is metered org-wide.
 - In `rebuild.yaml`, the publish job deletes the existing GitHub release only after the join succeeds, immediately before re-creating it (same invariant as patch 18 — a failed build leaves the old release untouched).
-- **GitHub Releases stay the distribution and the source of truth.** `.raw` files are public-repo release assets: free, unmetered, anonymously downloadable by systemd-sysupdate, and unaffected by Actions outages. Do not move distribution to the Namespace artifact store (it has no public access — downloads are workspace-authenticated 30-minute signed URLs) and do not delete releases or git tags; the full-exit design was evaluated, spiked, and rejected in the design doc. `release_dispatcher.sh`, `release_meta.sh`, `github_release_exists`, hub Caddy redirects and docs release links are unchanged.
-- Namespace profile config (caches, concurrency) lives in the Namespace dashboard, not this repo. The 4c-8g shape (7.8 GiB RAM + swap, ~55 GiB disk) fits every current bake (docker 29.9.1 and ollama verified 2026-10-17; scx arm64 is the slowest leg at ~39 min); upsize a profile only on a proven OOM/disk failure.
-- Operator warning: GitHub auto-disabled this fork's workflows once ("due to the scale of GitHub Actions usage", ~2026-10-14) even though every API reported Actions enabled; only a maintainer clicking re-enable on the repo Actions page cleared it. If schedules silently stop again, check that banner before debugging workflows — Namespace runners cannot start while Actions is off.
+- **GitHub Releases stay the distribution and the source of truth.** `.raw` files are public-repo release assets: free, unmetered, anonymously downloadable by systemd-sysupdate, and unaffected by runner outages. Do not move distribution onto the runner host, and do not delete releases or git tags. `release_dispatcher.sh`, `release_meta.sh`, `github_release_exists`, hub Caddy redirects and docs release links are unchanged.
+- The repo is public. Keep `pull_request`/`pull_request_target` triggers out of every workflow: they would let fork PRs run arbitrary code on the self-hosted host. Triggers stay `schedule` and `workflow_dispatch`.
+- Operator warning: GitHub auto-disabled this fork's workflows once ("due to the scale of GitHub Actions usage", ~2026-10-14) even though every API reported Actions enabled; only a maintainer clicking re-enable on the repo Actions page cleared it. If schedules silently stop, check that banner and the runner's online status (`gh api repos/qopsc/sysext-bakery/actions/runners`) before debugging workflows.
 
 ### 25. Hub landing page + version manifest
 
@@ -414,7 +416,7 @@ And sanity-check the scripts:
 
 ```bash
 bash -n release.sh docker.sysext/create.sh lib/generate.sh lib/helpers.sh release_meta.sh release_dispatcher.sh rebuild_dispatcher.sh nvidia-runtime.sysext/create.sh arcane.sysext/create.sh dust.sysext/create.sh eza.sysext/create.sh iperf3.sysext/create.sh iperf3.sysext/build.sh neovim.sysext/create.sh restic.sysext/create.sh bird.sysext/create.sh chrony.sysext/create.sh
-grep -rnE 'ubuntu-24\.04|setup-qemu|uses: actions/(upload|download)-artifact' .github/workflows/  # must be empty (patch 23; namespace-actions/* is fine)
+grep -rnE 'ubuntu-|namespace-profile|namespace-actions|uses: actions/(upload|download)-artifact|^ *pull_request(_target)?:' .github/workflows/  # must be empty (patch 23)
 ./bakery.sh list docker | head
 ./bakery.sh list nvidia-runtime | head
 ./bakery.sh list arcane | head

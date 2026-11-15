@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   report-missing-extension-docs:
-    runs-on: namespace-profile-linux-amd64-4c-8g-u24
+    runs-on: [self-hosted, linux, x64]
 
     steps:
       - uses: actions/checkout@v4

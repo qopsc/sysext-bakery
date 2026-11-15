@@ -31,7 +31,7 @@ This repository is the **qopsc fork** of `flatcar/sysext-bakery`. Read `AGENTS.m
   | 20 | tilde documentation | `docs/tilde.md`, `docs/index.md` tilde row |
   | 21 | restic extension | `restic.sysext/**`, `docs/restic.md`, `docs/index.md`, `release_build_versions.txt` restic lines |
   | 22 | Chrony numeric-tag listing | `chrony.sysext/create.sh` |
-  | 23 | Namespace runners + native per-arch builds | `.github/workflows/{release,rebuild,update-all-metadata,report-missing-extension-docs}.yaml`, `release.sh` |
+  | 23 | Self-hosted runner + per-arch builds | `.github/workflows/{release,rebuild,update-all-metadata,report-missing-extension-docs}.yaml`, `release.sh` |
   | 24 | Docs point at the fork hub | `docs/*.md` except `docs/netbird.md` |
   | 25 | Hub landing page + version manifest | `html/**`, `release_manifest.sh`, `tests/release_manifest_test.sh`, `tests/fixtures/gh-releases.json`, manifest steps in `.github/workflows/{release,update-all-metadata}.yaml` |
 
@@ -39,7 +39,7 @@ This repository is the **qopsc fork** of `flatcar/sysext-bakery`. Read `AGENTS.m
 - Patches 2, 7, 8, 12, 19 and 22 fix bugs that also exist upstream; they are carried fork-locally by choice and should disappear if upstream ever fixes them.
 - `.env` values (`bakery`, `bakery_hub`) are load-bearing: `bakery_hub` is baked into sysupdate configs shipped inside released images. Do not change without a node-migration plan.
 - `release_build_versions.txt` tracks upstream **except** the commented-out `kata-containers` line (patch 6): its x86-64 image is 2.286 GiB against GitHub's hard 2 GiB asset limit, and squashfs does not fix it. The fork-added `sqlite` lines (patch 10), `arcane` lines (patch 13), `dust` lines (patch 14), `iperf3` lines (patch 15), `neovim` lines (patch 16), `eza` lines (patch 17), and `restic` lines (patch 21) are the other exceptions.
-- Patch 23 (Namespace runners) is fork-local policy and is **not** upstreamed: all four workflows run on `namespace-profile-linux-{amd64,arm64}-4c-8g-u24`, builds are native per-arch with a publish job joining them, staging uses `namespace-actions/*`-artifacts, and GitHub Releases deliberately stay the distribution/source of truth (the Namespace artifact store has no public access). See AGENTS.md §23 and `2026-10-16-namespace-migration-design.md`.
+- Patch 23 (self-hosted runner) is fork-local policy and is **not** upstreamed: all four workflows run on `[self-hosted, linux, x64]` (one amd64 host, 142.248.82.217), arm64 legs build under QEMU, staging between build and publish is the host directory `/var/lib/sysext-ci/<run_id>/`, no workflow may use a `pull_request` trigger (public repo), and GitHub Releases stay the distribution/source of truth. See AGENTS.md §23.
 - Every other file tracks upstream verbatim — in conflicts, upstream wins outside the twenty-five patches.
 
 ## Hub status
