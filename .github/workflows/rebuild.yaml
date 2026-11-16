@@ -54,8 +54,12 @@ jobs:
         run: |
           set -euxo pipefail
           sudo apt update -qq && sudo apt install -yqq \
+            bzip2 \
             curl \
-            jq
+            gh \
+            jq \
+            unzip \
+            yq
 
       - name: list
         id: list
@@ -95,8 +99,12 @@ jobs:
         run: |
           set -euxo pipefail
           sudo apt update -qq && sudo apt install -yqq \
+            bzip2 \
             curl \
+            gh \
             jq \
+            unzip \
+            yq \
             squashfs-tools \
             xz-utils \
             erofs-utils
@@ -174,6 +182,13 @@ jobs:
           echo "base=${extension}-${version}" >> "${GITHUB_OUTPUT}"
           echo "extension=${extension}" >> "${GITHUB_OUTPUT}"
 
+      # gh is needed by the delete step below. Without it, that step's
+      # '|| echo' would hide the failure and upload over the old release.
+      - name: install prerequisites
+        run: |
+          set -euxo pipefail
+          sudo apt update -qq && sudo apt install -yqq gh
+
       - name: join arches and tag
         id: build
         env:
@@ -246,8 +261,12 @@ jobs:
         run: |
           set -euxo pipefail
           sudo apt update -qq && sudo apt install -yqq \
+            bzip2 \
             curl \
+            gh \
             jq \
+            unzip \
+            yq \
             squashfs-tools \
             xz-utils \
             erofs-utils
@@ -287,8 +306,12 @@ jobs:
         run: |
           set -euxo pipefail
           sudo apt update -qq && sudo apt install -yqq \
+            bzip2 \
             curl \
+            gh \
             jq \
+            unzip \
+            yq \
             squashfs-tools \
             xz-utils \
             erofs-utils

@@ -34,8 +34,12 @@ jobs:
           set -euxo pipefail
 
           sudo apt update -qq && sudo apt install -yqq \
+            bzip2 \
             curl \
+            gh \
             jq \
+            unzip \
+            yq \
             squashfs-tools \
             xz-utils \
             erofs-utils
@@ -83,8 +87,12 @@ jobs:
           set -euxo pipefail
 
           sudo apt update -qq && sudo apt install -yqq \
+            bzip2 \
             curl \
+            gh \
             jq \
+            unzip \
+            yq \
             squashfs-tools \
             xz-utils \
             erofs-utils
@@ -233,8 +241,12 @@ jobs:
           set -euxo pipefail
 
           sudo apt update -qq && sudo apt install -yqq \
+            bzip2 \
             curl \
+            gh \
             jq \
+            unzip \
+            yq \
             squashfs-tools \
             xz-utils \
             erofs-utils
@@ -278,8 +290,12 @@ jobs:
           set -euxo pipefail
 
           sudo apt update -qq && sudo apt install -yqq \
+            bzip2 \
             curl \
+            gh \
             jq \
+            unzip \
+            yq \
             squashfs-tools \
             xz-utils \
             erofs-utils

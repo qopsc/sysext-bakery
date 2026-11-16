@@ -32,8 +32,12 @@ jobs:
           set -euxo pipefail
 
           sudo apt update -qq && sudo apt install -yqq \
+            bzip2 \
             curl \
-            jq
+            gh \
+            jq \
+            unzip \
+            yq
 
       - name: list
         id: list
@@ -65,8 +69,12 @@ jobs:
           set -euxo pipefail
 
           sudo apt update -qq && sudo apt install -yqq \
+            bzip2 \
             curl \
-            jq
+            gh \
+            jq \
+            unzip \
+            yq
 
       - name: Fetch extension release metadata
         env:
@@ -102,8 +110,12 @@ jobs:
           set -euxo pipefail
 
           sudo apt update -qq && sudo apt install -yqq \
+            bzip2 \
             curl \
-            jq
+            gh \
+            jq \
+            unzip \
+            yq
 
       - name: Fetch all extension releases metadata
         env:
